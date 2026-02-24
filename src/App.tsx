@@ -3,7 +3,25 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { AuthProvider } from "./contexts/auth-context";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import AppLayout from "./components/layout/AppLayout";
+import LoginPage from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Sites from "./pages/Sites";
+import Environments from "./pages/Environments";
+import HarborSites from "./pages/HarborSites";
+import GenericClusters from "./pages/GenericClusters";
+import AppInstances from "./pages/AppInstances";
+import Services from "./pages/Services";
+import CompareSync from "./pages/CompareSync";
+import ConfigMaps from "./pages/ConfigMaps";
+import Secrets from "./pages/Secrets";
+import SyncHistory from "./pages/SyncHistory";
+import Users from "./pages/Users";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Monitoring from "./pages/Monitoring";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +32,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route index element={<Dashboard />} />
+              <Route path="sites" element={<Sites />} />
+              <Route path="environments" element={<Environments />} />
+              <Route path="harbor" element={<HarborSites />} />
+              <Route path="clusters" element={<GenericClusters />} />
+              <Route path="app-instances" element={<AppInstances />} />
+              <Route path="services" element={<Services />} />
+              <Route path="compare" element={<CompareSync />} />
+              <Route path="configmaps" element={<ConfigMaps />} />
+              <Route path="secrets" element={<Secrets />} />
+              <Route path="sync-history" element={<SyncHistory />} />
+              <Route path="monitoring" element={<Monitoring />} />
+              <Route path="users" element={<Users />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
