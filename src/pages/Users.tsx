@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Users as UsersIcon, Trash2, Edit, Shield, Loader2, Search } from 'lucide-react';
+import { IconButton } from '@/components/IconButton';
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -111,8 +112,8 @@ export default function UsersPage() {
                   <td className="p-3">{u.twoFactorEnabled ? <Shield className="h-4 w-4 text-primary" /> : <span className="text-xs text-muted-foreground">Off</span>}</td>
                   <td className="p-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => { setEditing(u); setForm({ username: u.username, email: u.email, password: '' }); setAdminToken(''); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="sm" onClick={() => { setDeleteId(u.id); setAdminToken(''); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <IconButton tooltip="Edit" onClick={() => { setEditing(u); setForm({ username: u.username, email: u.email, password: '' }); setAdminToken(''); setDialogOpen(true); }}><Edit className="h-4 w-4" /></IconButton>
+                      <IconButton tooltip="Delete" onClick={() => { setDeleteId(u.id); setAdminToken(''); }}><Trash2 className="h-4 w-4 text-destructive" /></IconButton>
                     </div>
                   </td>
                 </tr>

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Layers, Search, Tag, Loader2, RefreshCw } from 'lucide-react';
+import { IconButton } from '@/components/IconButton';
 
 export default function ServicesPage() {
   const { toast } = useToast();
@@ -99,7 +100,7 @@ export default function ServicesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchServices()} placeholder="Search services..." className="pl-10" />
         </div>
-        <Button variant="outline" onClick={fetchServices} disabled={!selectedInstance}><RefreshCw className="h-4 w-4" /></Button>
+        <IconButton tooltip="Refresh" variant="outline" onClick={fetchServices} disabled={!selectedInstance}><RefreshCw className="h-4 w-4" /></IconButton>
       </div>
 
       {/* Services list */}
