@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Loader2, CheckCircle, AlertTriangle, XCircle, ArrowRight, Minus, Plus, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface DetailData {
   source: Record<string, unknown> | null;
@@ -10,16 +11,26 @@ interface DetailData {
   [key: string]: unknown;
 }
 
+export interface CompareDetailItem {
+  title: string;
+  status: string;
+  detail: DetailData | null;
+  loading?: boolean;
+}
+
 interface CompareDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
-  status: string;
   sourceLabel: string;
   targetLabel: string;
-  loading: boolean;
-  detail: DetailData | null;
   maskedKeys?: string[];
+  // Single item mode (backward compatible)
+  title?: string;
+  status?: string;
+  loading?: boolean;
+  detail?: DetailData | null;
+  // Multi item mode
+  items?: CompareDetailItem[];
 }
 
 const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
@@ -84,113 +95,163 @@ const diffStyles: Record<DiffType, { row: string; srcCell: string; tgtCell: stri
   },
 };
 
-export function CompareDetailDialog({
-  open, onOpenChange, title, status, sourceLabel, targetLabel, loading, detail, maskedKeys = [],
-}: CompareDetailDialogProps) {
-  const cfg = statusConfig[status] || statusConfig.missing;
-  const allKeys = detail ? getAllKeys(detail.source, detail.target) : [];
+function DetailSection({ item, sourceLabel, targetLabel, maskedKeys = [] }: {
+  item: CompareDetailItem;
+  sourceLabel: string;
+  targetLabel: string;
+  maskedKeys?: string[];
+}) {
+  const cfg = statusConfig[item.status] || statusConfig.missing;
+  const allKeys = item.detail ? getAllKeys(item.detail.source, item.detail.target) : [];
 
-  // Sort: modified first, then added, removed, identical
   const sortOrder: Record<DiffType, number> = { modified: 0, added: 1, removed: 2, identical: 3 };
-  const sortedKeys = detail
+  const sortedKeys = item.detail
     ? [...allKeys].sort((a, b) => {
-        const da = getDiffType(detail.source?.[a], detail.target?.[a]);
-        const db = getDiffType(detail.source?.[b], detail.target?.[b]);
+        const da = getDiffType(item.detail!.source?.[a], item.detail!.target?.[a]);
+        const db = getDiffType(item.detail!.source?.[b], item.detail!.target?.[b]);
         return (sortOrder[da] ?? 9) - (sortOrder[db] ?? 9) || a.localeCompare(b);
       })
     : [];
 
   const counts = { identical: 0, modified: 0, added: 0, removed: 0 };
-  if (detail) {
+  if (item.detail) {
     for (const key of allKeys) {
-      counts[getDiffType(detail.source?.[key], detail.target?.[key])]++;
+      counts[getDiffType(item.detail.source?.[key], item.detail.target?.[key])]++;
     }
   }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <h3 className="font-mono text-sm font-semibold">{item.title}</h3>
+        <Badge variant="outline" className={cfg.color}>
+          <span className="flex items-center gap-1.5">{cfg.icon} {cfg.label}</span>
+        </Badge>
+        <div className="flex items-center gap-3 text-[11px] ml-auto">
+          {counts.modified > 0 && (
+            <span className="flex items-center gap-1 text-[hsl(var(--diff-modified-fg))]">
+              <RefreshCw className="h-3 w-3" /> {counts.modified}
+            </span>
+          )}
+          {counts.added > 0 && (
+            <span className="flex items-center gap-1 text-[hsl(var(--diff-added-fg))]">
+              <Plus className="h-3 w-3" /> {counts.added}
+            </span>
+          )}
+          {counts.removed > 0 && (
+            <span className="flex items-center gap-1 text-[hsl(var(--diff-removed-fg))]">
+              <Minus className="h-3 w-3" /> {counts.removed}
+            </span>
+          )}
+          {counts.identical > 0 && (
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <CheckCircle className="h-3 w-3" /> {counts.identical}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {item.loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+      ) : !item.detail ? (
+        <p className="text-sm text-muted-foreground text-center py-4">No detail data available</p>
+      ) : (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="p-2 w-6"></th>
+                <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[22%]">Key</th>
+                <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[36%]">{sourceLabel}</th>
+                <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[36%]">{targetLabel}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedKeys.map(key => {
+                const isMasked = maskedKeys.includes(key);
+                const srcVal = item.detail!.source?.[key];
+                const tgtVal = item.detail!.target?.[key];
+                const diffType = getDiffType(srcVal, tgtVal);
+                const style = diffStyles[diffType];
+
+                return (
+                  <tr key={key} className={`border-b border-border/30 ${style.row}`}>
+                    <td className="p-2 text-center align-top">{style.icon}</td>
+                    <td className="p-2 font-mono text-xs font-medium align-top">{key}</td>
+                    <td className={`p-2 font-mono text-xs align-top whitespace-pre-wrap break-all ${style.srcCell}`}>
+                      {formatValue(srcVal, isMasked) || <span className="text-muted-foreground/40 italic">—</span>}
+                    </td>
+                    <td className={`p-2 font-mono text-xs align-top whitespace-pre-wrap break-all ${style.tgtCell}`}>
+                      {formatValue(tgtVal, isMasked) || <span className="text-muted-foreground/40 italic">—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+              {sortedKeys.length === 0 && (
+                <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No keys to display</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CompareDetailDialog({
+  open, onOpenChange, sourceLabel, targetLabel, maskedKeys = [],
+  title, status, loading, detail,
+  items,
+}: CompareDetailDialogProps) {
+  // Normalize to items array
+  const resolvedItems: CompareDetailItem[] = items && items.length > 0
+    ? items
+    : title
+      ? [{ title: title!, status: status || 'missing', detail: detail ?? null, loading }]
+      : [];
+
+  const isMulti = resolvedItems.length > 1;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <DialogTitle className="font-mono text-lg">{title}</DialogTitle>
-            <Badge variant="outline" className={cfg.color}>
-              <span className="flex items-center gap-1.5">{cfg.icon} {cfg.label}</span>
-            </Badge>
+            <DialogTitle className="text-lg">
+              {isMulti ? `Comparing ${resolvedItems.length} items` : resolvedItems[0]?.title || 'Details'}
+            </DialogTitle>
+            {!isMulti && resolvedItems[0] && (() => {
+              const cfg = statusConfig[resolvedItems[0].status] || statusConfig.missing;
+              return (
+                <Badge variant="outline" className={cfg.color}>
+                  <span className="flex items-center gap-1.5">{cfg.icon} {cfg.label}</span>
+                </Badge>
+              );
+            })()}
           </div>
-          <div className="flex items-center gap-4 mt-2">
-            <p className="text-xs text-muted-foreground">
-              {sourceLabel} <ArrowRight className="inline h-3 w-3 mx-1" /> {targetLabel}
-            </p>
-            <div className="flex items-center gap-3 text-[11px] ml-auto">
-              {counts.modified > 0 && (
-                <span className="flex items-center gap-1 text-[hsl(var(--diff-modified-fg))]">
-                  <RefreshCw className="h-3 w-3" /> {counts.modified} modified
-                </span>
-              )}
-              {counts.added > 0 && (
-                <span className="flex items-center gap-1 text-[hsl(var(--diff-added-fg))]">
-                  <Plus className="h-3 w-3" /> {counts.added} added
-                </span>
-              )}
-              {counts.removed > 0 && (
-                <span className="flex items-center gap-1 text-[hsl(var(--diff-removed-fg))]">
-                  <Minus className="h-3 w-3" /> {counts.removed} removed
-                </span>
-              )}
-              {counts.identical > 0 && (
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  <CheckCircle className="h-3 w-3" /> {counts.identical} identical
-                </span>
-              )}
-            </div>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            {sourceLabel} <ArrowRight className="inline h-3 w-3 mx-1" /> {targetLabel}
+          </p>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-        ) : !detail ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No detail data available</p>
-        ) : (
-          <ScrollArea className="flex-1 -mx-6 px-6">
-            <div className="rounded-lg border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="p-2 w-6"></th>
-                    <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[22%]">Key</th>
-                    <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[36%]">{sourceLabel}</th>
-                    <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[36%]">{targetLabel}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedKeys.map(key => {
-                    const isMasked = maskedKeys.includes(key);
-                    const srcVal = detail.source?.[key];
-                    const tgtVal = detail.target?.[key];
-                    const diffType = getDiffType(srcVal, tgtVal);
-                    const style = diffStyles[diffType];
-
-                    return (
-                      <tr key={key} className={`border-b border-border/30 ${style.row}`}>
-                        <td className="p-2 text-center align-top">{style.icon}</td>
-                        <td className="p-2 font-mono text-xs font-medium align-top">{key}</td>
-                        <td className={`p-2 font-mono text-xs align-top whitespace-pre-wrap break-all ${style.srcCell}`}>
-                          {formatValue(srcVal, isMasked) || <span className="text-muted-foreground/40 italic">—</span>}
-                        </td>
-                        <td className={`p-2 font-mono text-xs align-top whitespace-pre-wrap break-all ${style.tgtCell}`}>
-                          {formatValue(tgtVal, isMasked) || <span className="text-muted-foreground/40 italic">—</span>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {sortedKeys.length === 0 && (
-                    <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No keys to display</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </ScrollArea>
-        )}
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="space-y-6">
+            {resolvedItems.map((item, idx) => (
+              <div key={item.title + idx}>
+                {isMulti && idx > 0 && <Separator className="mb-6" />}
+                <DetailSection
+                  item={item}
+                  sourceLabel={sourceLabel}
+                  targetLabel={targetLabel}
+                  maskedKeys={maskedKeys}
+                />
+              </div>
+            ))}
+            {resolvedItems.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">No items to display</p>
+            )}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
