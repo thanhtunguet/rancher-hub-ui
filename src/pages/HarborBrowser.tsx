@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { HarborSitesRepository } from '@/repositories/harbor-sites.repository';
 import type { HarborSite } from '@/api/types';
 import { useToast } from '@/hooks/use-toast';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, ChevronRight, Folder, Package, Tag, ArrowLeft,
-  Info, Clock, HardDrive, Layers
+  Info, Clock, HardDrive, Layers, Copy, Check, Terminal
 } from 'lucide-react';
 
 type BreadcrumbLevel = 'projects' | 'repositories' | 'tags' | 'tagDetail';
@@ -15,21 +15,25 @@ type BreadcrumbLevel = 'projects' | 'repositories' | 'tags' | 'tagDetail';
 interface BreadcrumbItem {
   level: BreadcrumbLevel;
   label: string;
+  path: string;
+}
+
+/** Parse the path segments after /harbor/:siteId/browse/ */
+function parseBrowsePath(pathname: string, siteId: string) {
+  const prefix = `/harbor/${siteId}/browse`;
+  const rest = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : '';
+  const segments = rest.split('/').filter(Boolean).map(decodeURIComponent);
+  return segments;
 }
 
 export default function HarborBrowserPage() {
   const { siteId } = useParams<{ siteId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const [site, setSite] = useState<HarborSite | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Navigation state
-  const [currentLevel, setCurrentLevel] = useState<BreadcrumbLevel>('projects');
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Data state
   const [projects, setProjects] = useState<any[]>([]);
@@ -37,85 +41,94 @@ export default function HarborBrowserPage() {
   const [tags, setTags] = useState<any[]>([]);
   const [tagDetail, setTagDetail] = useState<any>(null);
 
+  const segments = siteId ? parseBrowsePath(location.pathname, siteId) : [];
+  const selectedProject = segments[0] || null;
+  const selectedRepo = segments.length >= 2 ? segments.slice(1, -1).join('/') || null : null;
+  const selectedTag = segments.length >= 3 ? segments[segments.length - 1] : null;
+
+  // Determine actual level from segments
+  const currentLevel: BreadcrumbLevel =
+    segments.length === 0 ? 'projects' :
+    segments.length === 1 ? 'repositories' :
+    segments.length === 2 ? 'tags' : 'tagDetail';
+
+  // We need to handle repo names that may contain slashes - for now use exactly 2nd segment as repo
+  // Recompute: seg[0]=project, seg[1]=repo, seg[2]=tag
+  const repoName = segments[1] || null;
+  const tagName = segments[2] || null;
+  const actualLevel: BreadcrumbLevel =
+    segments.length === 0 ? 'projects' :
+    segments.length === 1 ? 'repositories' :
+    segments.length === 2 ? 'tags' : 'tagDetail';
+
+  const basePath = `/harbor/${siteId}/browse`;
+
+  // Load site info once
   useEffect(() => {
     if (!siteId) return;
-    Promise.all([
-      HarborSitesRepository.findOne(siteId),
-      HarborSitesRepository.getProjects(siteId),
-    ])
-      .then(([s, p]) => {
-        setSite(s);
-        setProjects(Array.isArray(p) ? p : []);
-      })
-      .catch(() => toast({ title: 'Error', description: 'Failed to load harbor site', variant: 'destructive' }))
-      .finally(() => setLoading(false));
+    HarborSitesRepository.findOne(siteId)
+      .then(setSite)
+      .catch(() => {});
   }, [siteId]);
 
-  const openProject = async (projectName: string) => {
+  // Load data based on URL segments
+  useEffect(() => {
     if (!siteId) return;
     setLoading(true);
-    setSelectedProject(projectName);
-    try {
-      const repos = await HarborSitesRepository.getRepositories(siteId, projectName);
-      setRepositories(Array.isArray(repos) ? repos : []);
-      setCurrentLevel('repositories');
-    } catch {
-      toast({ title: 'Error', description: 'Failed to load repositories', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
+
+    const load = async () => {
+      try {
+        if (actualLevel === 'projects') {
+          const p = await HarborSitesRepository.getProjects(siteId);
+          setProjects(Array.isArray(p) ? p : []);
+        } else if (actualLevel === 'repositories' && selectedProject) {
+          const repos = await HarborSitesRepository.getRepositories(siteId, selectedProject);
+          setRepositories(Array.isArray(repos) ? repos : []);
+        } else if (actualLevel === 'tags' && selectedProject && repoName) {
+          const arts = await HarborSitesRepository.getArtifacts(siteId, selectedProject, repoName);
+          setTags(Array.isArray(arts) ? arts : []);
+        } else if (actualLevel === 'tagDetail' && selectedProject && repoName && tagName) {
+          const detail = await HarborSitesRepository.getTagDetail(siteId, selectedProject, repoName, tagName);
+          setTagDetail(detail);
+        }
+      } catch {
+        toast({ title: 'Error', description: 'Failed to load data', variant: 'destructive' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [siteId, location.pathname]);
+
+  const openProject = (projectName: string) => {
+    navigate(`${basePath}/${encodeURIComponent(projectName)}`);
   };
 
-  const openRepository = async (repoName: string) => {
-    if (!siteId || !selectedProject) return;
-    setLoading(true);
-    setSelectedRepo(repoName);
-    try {
-      const arts = await HarborSitesRepository.getArtifacts(siteId, selectedProject, repoName);
-      setTags(Array.isArray(arts) ? arts : []);
-      setCurrentLevel('tags');
-    } catch {
-      toast({ title: 'Error', description: 'Failed to load tags', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
+  const openRepository = (repo: string) => {
+    navigate(`${basePath}/${encodeURIComponent(selectedProject!)}/${encodeURIComponent(repo)}`);
   };
 
-  const openTag = async (tag: string) => {
-    if (!siteId || !selectedProject || !selectedRepo) return;
-    setLoading(true);
-    setSelectedTag(tag);
-    try {
-      const detail = await HarborSitesRepository.getTagDetail(siteId, selectedProject, selectedRepo, tag);
-      setTagDetail(detail);
-      setCurrentLevel('tagDetail');
-    } catch {
-      toast({ title: 'Error', description: 'Failed to load tag details', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
+  const openTag = (tag: string) => {
+    navigate(`${basePath}/${encodeURIComponent(selectedProject!)}/${encodeURIComponent(repoName!)}/${encodeURIComponent(tag)}`);
   };
 
-  const navigateTo = (level: BreadcrumbLevel) => {
-    if (level === 'projects') {
-      setCurrentLevel('projects');
-      setSelectedProject(null);
-      setSelectedRepo(null);
-      setSelectedTag(null);
-    } else if (level === 'repositories' && selectedProject) {
-      setCurrentLevel('repositories');
-      setSelectedRepo(null);
-      setSelectedTag(null);
-    } else if (level === 'tags' && selectedProject && selectedRepo) {
-      setCurrentLevel('tags');
-      setSelectedTag(null);
-    }
+  const navigateTo = (path: string) => {
+    navigate(path);
   };
 
-  const breadcrumbs: BreadcrumbItem[] = [{ level: 'projects', label: site?.name || 'Projects' }];
-  if (selectedProject) breadcrumbs.push({ level: 'repositories', label: selectedProject });
-  if (selectedRepo) breadcrumbs.push({ level: 'tags', label: selectedRepo });
-  if (selectedTag) breadcrumbs.push({ level: 'tagDetail', label: selectedTag });
+  // Build breadcrumbs
+  const breadcrumbs: BreadcrumbItem[] = [
+    { level: 'projects', label: site?.name || 'Projects', path: basePath },
+  ];
+  if (selectedProject) {
+    breadcrumbs.push({ level: 'repositories', label: selectedProject, path: `${basePath}/${encodeURIComponent(selectedProject)}` });
+  }
+  if (repoName) {
+    breadcrumbs.push({ level: 'tags', label: repoName, path: `${basePath}/${encodeURIComponent(selectedProject!)}/${encodeURIComponent(repoName)}` });
+  }
+  if (tagName) {
+    breadcrumbs.push({ level: 'tagDetail', label: tagName, path: `${basePath}/${encodeURIComponent(selectedProject!)}/${encodeURIComponent(repoName!)}/${encodeURIComponent(tagName)}` });
+  }
 
   const formatSize = (bytes?: number) => {
     if (!bytes) return '—';
@@ -129,6 +142,11 @@ export default function HarborBrowserPage() {
     if (!d) return '—';
     try { return new Date(d).toLocaleString(); } catch { return d; }
   };
+
+  // Docker pull command
+  const pullCommand = site && selectedProject && repoName && tagName
+    ? `docker pull ${site.url?.replace(/^https?:\/\//, '')}/${selectedProject}/${repoName}:${tagName}`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -146,11 +164,11 @@ export default function HarborBrowserPage() {
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1 text-sm flex-wrap">
         {breadcrumbs.map((bc, i) => (
-          <span key={bc.level} className="flex items-center gap-1">
+          <span key={bc.path} className="flex items-center gap-1">
             {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
             {i < breadcrumbs.length - 1 ? (
               <button
-                onClick={() => navigateTo(bc.level)}
+                onClick={() => navigateTo(bc.path)}
                 className="text-primary hover:underline font-medium"
               >
                 {bc.label}
@@ -170,7 +188,7 @@ export default function HarborBrowserPage() {
       ) : (
         <>
           {/* Projects */}
-          {currentLevel === 'projects' && (
+          {actualLevel === 'projects' && (
             <div className="grid gap-2">
               {projects.length === 0 ? (
                 <EmptyState icon={Folder} text="No projects found" />
@@ -192,14 +210,13 @@ export default function HarborBrowserPage() {
           )}
 
           {/* Repositories */}
-          {currentLevel === 'repositories' && (
+          {actualLevel === 'repositories' && (
             <div className="grid gap-2">
               {repositories.length === 0 ? (
                 <EmptyState icon={Package} text="No repositories found" />
               ) : (
                 repositories.map((r: any) => {
                   const name = r.name || r.repository_name || 'unknown';
-                  // Strip project prefix if present
                   const displayName = name.includes('/') ? name.split('/').slice(1).join('/') : name;
                   return (
                     <ListRow
@@ -216,7 +233,7 @@ export default function HarborBrowserPage() {
           )}
 
           {/* Tags */}
-          {currentLevel === 'tags' && (
+          {actualLevel === 'tags' && (
             <div className="grid gap-2">
               {tags.length === 0 ? (
                 <EmptyState icon={Tag} text="No tags found" />
@@ -268,8 +285,11 @@ export default function HarborBrowserPage() {
           )}
 
           {/* Tag Detail */}
-          {currentLevel === 'tagDetail' && tagDetail && (
+          {actualLevel === 'tagDetail' && tagDetail && (
             <div className="space-y-4">
+              {/* Docker pull command */}
+              {pullCommand && <PullCommand command={pullCommand} />}
+
               <div className="surface-elevated rounded-lg p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   <Info className="h-5 w-5 text-primary" />
@@ -278,7 +298,6 @@ export default function HarborBrowserPage() {
                 <DetailGrid detail={tagDetail} formatSize={formatSize} formatDate={formatDate} />
               </div>
 
-              {/* Extra sections */}
               {tagDetail.config && (
                 <CollapsibleJson title="Config" data={tagDetail.config} />
               )}
@@ -300,7 +319,6 @@ export default function HarborBrowserPage() {
                 </div>
               )}
 
-              {/* Raw JSON fallback */}
               <CollapsibleJson title="Raw Response" data={tagDetail} />
             </div>
           )}
@@ -311,6 +329,27 @@ export default function HarborBrowserPage() {
 }
 
 /* ---- Sub-components ---- */
+
+function PullCommand({ command }: { command: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = () => {
+    navigator.clipboard.writeText(command).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="surface-elevated rounded-lg p-4 flex items-center gap-3">
+      <Terminal className="h-5 w-5 text-primary shrink-0" />
+      <code className="text-sm font-mono flex-1 truncate">{command}</code>
+      <Button variant="ghost" size="icon" onClick={copy} className="shrink-0">
+        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+}
 
 function ListRow({ icon, label, meta, onClick }: { icon: React.ReactNode; label: string; meta?: string; onClick: () => void }) {
   return (
@@ -349,7 +388,6 @@ function DetailGrid({ detail, formatSize, formatDate }: { detail: any; formatSiz
   if (detail.pull_time) fields.push({ label: 'Last Pulled', value: formatDate(detail.pull_time) });
   if (detail.scan_overview) fields.push({ label: 'Scan Status', value: JSON.stringify(detail.scan_overview) });
 
-  // fallback: show all top-level string/number fields not yet shown
   const shown = new Set(fields.map(f => f.label.toLowerCase().replace(/\s/g, '')));
   const skipKeys = new Set(['config', 'layers', 'tags', 'references', 'additions', 'labels']);
   Object.entries(detail).forEach(([k, v]) => {
