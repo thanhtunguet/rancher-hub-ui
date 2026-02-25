@@ -234,7 +234,7 @@ export function CompareDetailDialog({
           </p>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6" style={{ maxHeight: 'calc(85vh - 120px)' }}>
+        <div className="overflow-y-auto -mx-6 px-6" style={{ maxHeight: 'calc(85vh - 140px)' }}>
           <div className="space-y-6">
             {resolvedItems.map((item, idx) => (
               <div key={item.title + idx}>
@@ -251,7 +251,7 @@ export function CompareDetailDialog({
               <p className="text-sm text-muted-foreground text-center py-8">No items to display</p>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
