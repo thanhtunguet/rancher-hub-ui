@@ -14,7 +14,7 @@ import HarborSites from "./pages/HarborSites";
 import GenericClusters from "./pages/GenericClusters";
 import AppInstances from "./pages/AppInstances";
 import Services from "./pages/Services";
-import CompareSync from "./pages/CompareSync";
+
 import ConfigMaps from "./pages/ConfigMaps";
 import Secrets from "./pages/Secrets";
 import SyncHistory from "./pages/SyncHistory";
@@ -43,7 +43,7 @@ const App = () => (
               <Route path="clusters" element={<GenericClusters />} />
               <Route path="app-instances" element={<AppInstances />} />
               <Route path="services" element={<Services />} />
-              <Route path="compare" element={<CompareSync />} />
+              
               <Route path="configmaps" element={<ConfigMaps />} />
               <Route path="secrets" element={<Secrets />} />
               <Route path="sync-history" element={<SyncHistory />} />
