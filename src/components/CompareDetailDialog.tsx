@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, CheckCircle, AlertTriangle, XCircle, ArrowRight } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, XCircle, ArrowRight, Minus, Plus, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -19,7 +19,6 @@ interface CompareDetailDialogProps {
   targetLabel: string;
   loading: boolean;
   detail: DetailData | null;
-  /** Keys to mask values (e.g. secret data) */
   maskedKeys?: string[];
 }
 
@@ -30,7 +29,7 @@ const statusConfig: Record<string, { icon: React.ReactNode; label: string; color
 };
 
 function formatValue(val: unknown, mask = false): string {
-  if (val === null || val === undefined) return '—';
+  if (val === null || val === undefined) return '';
   if (mask) return '••••••••';
   if (typeof val === 'object') return JSON.stringify(val, null, 2);
   return String(val);
@@ -43,12 +42,70 @@ function getAllKeys(source: Record<string, unknown> | null, target: Record<strin
   return Array.from(keys).sort();
 }
 
+type DiffType = 'identical' | 'added' | 'removed' | 'modified';
+
+function getDiffType(srcVal: unknown, tgtVal: unknown): DiffType {
+  const inSrc = srcVal !== undefined;
+  const inTgt = tgtVal !== undefined;
+  if (inSrc && !inTgt) return 'removed';
+  if (!inSrc && inTgt) return 'added';
+  if (JSON.stringify(srcVal) !== JSON.stringify(tgtVal)) return 'modified';
+  return 'identical';
+}
+
+const diffStyles: Record<DiffType, { row: string; srcCell: string; tgtCell: string; icon: React.ReactNode; label: string }> = {
+  identical: {
+    row: '',
+    srcCell: '',
+    tgtCell: '',
+    icon: <CheckCircle className="h-3 w-3 text-muted-foreground" />,
+    label: '',
+  },
+  removed: {
+    row: 'bg-[hsl(var(--diff-removed-bg))]',
+    srcCell: 'bg-[hsl(var(--diff-removed-highlight))] text-[hsl(var(--diff-removed-fg))]',
+    tgtCell: 'opacity-40',
+    icon: <Minus className="h-3 w-3 text-[hsl(var(--diff-removed-fg))]" />,
+    label: 'Removed',
+  },
+  added: {
+    row: 'bg-[hsl(var(--diff-added-bg))]',
+    srcCell: 'opacity-40',
+    tgtCell: 'bg-[hsl(var(--diff-added-highlight))] text-[hsl(var(--diff-added-fg))]',
+    icon: <Plus className="h-3 w-3 text-[hsl(var(--diff-added-fg))]" />,
+    label: 'Added',
+  },
+  modified: {
+    row: 'bg-[hsl(var(--diff-modified-bg))]',
+    srcCell: 'bg-[hsl(var(--diff-removed-highlight))] text-[hsl(var(--diff-removed-fg))]',
+    tgtCell: 'bg-[hsl(var(--diff-added-highlight))] text-[hsl(var(--diff-added-fg))]',
+    icon: <RefreshCw className="h-3 w-3 text-[hsl(var(--diff-modified-fg))]" />,
+    label: 'Modified',
+  },
+};
+
 export function CompareDetailDialog({
   open, onOpenChange, title, status, sourceLabel, targetLabel, loading, detail, maskedKeys = [],
 }: CompareDetailDialogProps) {
   const cfg = statusConfig[status] || statusConfig.missing;
-  const diffKeys = detail?.differences ? new Set(Object.keys(detail.differences)) : new Set<string>();
   const allKeys = detail ? getAllKeys(detail.source, detail.target) : [];
+
+  // Sort: modified first, then added, removed, identical
+  const sortOrder: Record<DiffType, number> = { modified: 0, added: 1, removed: 2, identical: 3 };
+  const sortedKeys = detail
+    ? [...allKeys].sort((a, b) => {
+        const da = getDiffType(detail.source?.[a], detail.target?.[a]);
+        const db = getDiffType(detail.source?.[b], detail.target?.[b]);
+        return (sortOrder[da] ?? 9) - (sortOrder[db] ?? 9) || a.localeCompare(b);
+      })
+    : [];
+
+  const counts = { identical: 0, modified: 0, added: 0, removed: 0 };
+  if (detail) {
+    for (const key of allKeys) {
+      counts[getDiffType(detail.source?.[key], detail.target?.[key])]++;
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,9 +117,33 @@ export function CompareDetailDialog({
               <span className="flex items-center gap-1.5">{cfg.icon} {cfg.label}</span>
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {sourceLabel} <ArrowRight className="inline h-3 w-3 mx-1" /> {targetLabel}
-          </p>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-xs text-muted-foreground">
+              {sourceLabel} <ArrowRight className="inline h-3 w-3 mx-1" /> {targetLabel}
+            </p>
+            <div className="flex items-center gap-3 text-[11px] ml-auto">
+              {counts.modified > 0 && (
+                <span className="flex items-center gap-1 text-[hsl(var(--diff-modified-fg))]">
+                  <RefreshCw className="h-3 w-3" /> {counts.modified} modified
+                </span>
+              )}
+              {counts.added > 0 && (
+                <span className="flex items-center gap-1 text-[hsl(var(--diff-added-fg))]">
+                  <Plus className="h-3 w-3" /> {counts.added} added
+                </span>
+              )}
+              {counts.removed > 0 && (
+                <span className="flex items-center gap-1 text-[hsl(var(--diff-removed-fg))]">
+                  <Minus className="h-3 w-3" /> {counts.removed} removed
+                </span>
+              )}
+              {counts.identical > 0 && (
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <CheckCircle className="h-3 w-3" /> {counts.identical} identical
+                </span>
+              )}
+            </div>
+          </div>
         </DialogHeader>
 
         {loading ? (
@@ -75,42 +156,35 @@ export function CompareDetailDialog({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wider w-[25%]">Key</th>
-                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wider w-[35%]">{sourceLabel}</th>
-                    <th className="text-left p-3 font-medium text-xs uppercase tracking-wider w-[35%]">{targetLabel}</th>
+                    <th className="p-2 w-6"></th>
+                    <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[22%]">Key</th>
+                    <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[36%]">{sourceLabel}</th>
+                    <th className="text-left p-2 font-medium text-xs uppercase tracking-wider w-[36%]">{targetLabel}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {allKeys.map(key => {
-                    const isDiff = diffKeys.has(key);
+                  {sortedKeys.map(key => {
                     const isMasked = maskedKeys.includes(key);
                     const srcVal = detail.source?.[key];
                     const tgtVal = detail.target?.[key];
-                    const onlyInSource = srcVal !== undefined && tgtVal === undefined;
-                    const onlyInTarget = tgtVal !== undefined && srcVal === undefined;
+                    const diffType = getDiffType(srcVal, tgtVal);
+                    const style = diffStyles[diffType];
 
                     return (
-                      <tr
-                        key={key}
-                        className={`border-b border-border/50 ${isDiff ? 'bg-warning/5' : ''} ${onlyInSource ? 'bg-destructive/5' : ''} ${onlyInTarget ? 'bg-info/5' : ''}`}
-                      >
-                        <td className="p-3 font-mono text-xs font-medium align-top">
-                          {key}
-                          {isDiff && <span className="ml-2 text-warning">●</span>}
-                          {onlyInSource && <span className="ml-2 text-destructive text-[10px]">SRC ONLY</span>}
-                          {onlyInTarget && <span className="ml-2 text-info text-[10px]">TGT ONLY</span>}
+                      <tr key={key} className={`border-b border-border/30 ${style.row}`}>
+                        <td className="p-2 text-center align-top">{style.icon}</td>
+                        <td className="p-2 font-mono text-xs font-medium align-top">{key}</td>
+                        <td className={`p-2 font-mono text-xs align-top whitespace-pre-wrap break-all ${style.srcCell}`}>
+                          {formatValue(srcVal, isMasked) || <span className="text-muted-foreground/40 italic">—</span>}
                         </td>
-                        <td className="p-3 font-mono text-xs text-muted-foreground align-top whitespace-pre-wrap break-all">
-                          {formatValue(srcVal, isMasked)}
-                        </td>
-                        <td className="p-3 font-mono text-xs text-muted-foreground align-top whitespace-pre-wrap break-all">
-                          {formatValue(tgtVal, isMasked)}
+                        <td className={`p-2 font-mono text-xs align-top whitespace-pre-wrap break-all ${style.tgtCell}`}>
+                          {formatValue(tgtVal, isMasked) || <span className="text-muted-foreground/40 italic">—</span>}
                         </td>
                       </tr>
                     );
                   })}
-                  {allKeys.length === 0 && (
-                    <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">No keys to display</td></tr>
+                  {sortedKeys.length === 0 && (
+                    <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No keys to display</td></tr>
                   )}
                 </tbody>
               </table>
