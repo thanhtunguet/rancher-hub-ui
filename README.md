@@ -1,73 +1,92 @@
-# Welcome to your Lovable project
+# Rancher Hub Control
 
-## Project info
+Rancher Hub Control is a React + TypeScript admin dashboard for managing Rancher Hub resources and operations.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech stack
 
-## How can I edit this code?
+- Vite
+- React 18
+- TypeScript
+- React Router
+- TanStack Query
+- Axios
+- Tailwind CSS + shadcn/ui components
+- Vitest + Testing Library
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+- Authentication flow with protected routes
+- Dashboard and operational pages for:
+  - Sites
+  - Environments
+  - Harbor sites/browser
+  - Generic clusters
+  - App instances
+  - Services
+  - ConfigMaps
+  - Secrets
+  - Sync history
+  - Monitoring and templates
+  - Users, profile, trusted devices, settings
+- Configurable API base URL stored in browser local storage
+- Token-based API access via Axios interceptors
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 20+
+- npm
 
-**Use your preferred IDE**
+## Getting started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will start with Vite dev server (default: `http://localhost:5173`).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Available scripts
 
-**Use GitHub Codespaces**
+- `npm run dev` — Start development server
+- `npm run build` — Build production bundle
+- `npm run build:dev` — Build with development mode
+- `npm run preview` — Preview production build locally
+- `npm run lint` — Run ESLint
+- `npm run test` — Run tests once (Vitest)
+- `npm run test:watch` — Run tests in watch mode
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Environment configuration
 
-## What technologies are used for this project?
+Use `VITE_API_BASE_URL` to set API base URL at build/runtime for the frontend.
 
-This project is built with:
+Example:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```bash
+VITE_API_BASE_URL=https://api.example.com npm run dev
+```
 
-## How can I deploy this project?
+The app also stores runtime config in local storage under `rancherhub_config`.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Docker
 
-## Can I connect a custom domain to my Lovable project?
+Build and run with Docker:
 
-Yes, you can!
+```bash
+docker build -t rancher-hub-control .
+docker run --rm -p 8080:80 rancher-hub-control
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Then open `http://localhost:8080`.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Project structure
+
+```text
+src/
+  api/            # API client and shared API types
+  components/     # Reusable UI and layout components
+  contexts/       # React context providers (e.g. auth)
+  hooks/          # Custom React hooks
+  pages/          # Route-level pages
+  repositories/   # Data access wrappers per resource
+  test/           # Test setup and specs
+```
