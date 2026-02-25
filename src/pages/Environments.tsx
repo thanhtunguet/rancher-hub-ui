@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Globe, Trash2, Edit, Loader2 } from 'lucide-react';
+import { IconButton } from '@/components/IconButton';
 
 export default function EnvironmentsPage() {
   const { toast } = useToast();
@@ -76,12 +77,12 @@ export default function EnvironmentsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" onClick={() => { setEditing(env); setForm({ name: env.name, description: env.description || '', color: env.color }); setDialogOpen(true); }}>
+                <IconButton tooltip="Edit" onClick={() => { setEditing(env); setForm({ name: env.name, description: env.description || '', color: env.color }); setDialogOpen(true); }}>
                   <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteId(env.id)}>
+                </IconButton>
+                <IconButton tooltip="Delete" onClick={() => setDeleteId(env.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                </IconButton>
               </div>
             </div>
           ))}

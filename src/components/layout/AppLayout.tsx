@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/IconButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,14 +72,13 @@ export default function AppLayout() {
 
         {/* Collapse toggle */}
         <div className="border-t border-border p-2 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
+          <IconButton
+            tooltip={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             onClick={() => setCollapsed(!collapsed)}
             className="w-full justify-center text-muted-foreground"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
+          </IconButton>
         </div>
       </aside>
 

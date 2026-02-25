@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Plus, Server, Wifi, WifiOff, Trash2, Edit, Zap, ZapOff, Loader2 } from 'lucide-react';
+import { IconButton } from '@/components/IconButton';
 
 export default function SitesPage() {
   const { toast } = useToast();
@@ -131,18 +132,18 @@ export default function SitesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="sm" onClick={() => handleTest(site.id)} disabled={testingId === site.id}>
+                <IconButton tooltip="Test connection" onClick={() => handleTest(site.id)} disabled={testingId === site.id}>
                   {testingId === site.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleToggleActive(site)}>
+                </IconButton>
+                <IconButton tooltip={site.active ? 'Deactivate' : 'Activate'} onClick={() => handleToggleActive(site)}>
                   {site.active ? <Zap className="h-4 w-4 text-success" /> : <ZapOff className="h-4 w-4 text-muted-foreground" />}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => openEdit(site)}>
+                </IconButton>
+                <IconButton tooltip="Edit" onClick={() => openEdit(site)}>
                   <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteId(site.id)}>
+                </IconButton>
+                <IconButton tooltip="Delete" onClick={() => setDeleteId(site.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                </IconButton>
               </div>
             </div>
           ))}

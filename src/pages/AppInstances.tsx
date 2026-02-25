@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Box, Trash2, Edit, Loader2 } from 'lucide-react';
+import { IconButton } from '@/components/IconButton';
 
 export default function AppInstancesPage() {
   const { toast } = useToast();
@@ -99,7 +100,7 @@ export default function AppInstancesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="sm" onClick={() => {
+                <IconButton tooltip="Edit" onClick={() => {
                   setEditing(inst);
                   setForm({
                     name: inst.name, cluster: inst.cluster, namespace: inst.namespace,
@@ -107,8 +108,8 @@ export default function AppInstancesPage() {
                     rancherSiteId: inst.rancherSiteId, genericClusterSiteId: inst.genericClusterSiteId,
                   });
                   setDialogOpen(true);
-                }}><Edit className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteId(inst.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                }}><Edit className="h-4 w-4" /></IconButton>
+                <IconButton tooltip="Delete" onClick={() => setDeleteId(inst.id)}><Trash2 className="h-4 w-4 text-destructive" /></IconButton>
               </div>
             </div>
           ))}

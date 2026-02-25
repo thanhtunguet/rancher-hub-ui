@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Container, Wifi, Trash2, Edit, Zap, ZapOff, Loader2 } from 'lucide-react';
+import { IconButton } from '@/components/IconButton';
 
 export default function HarborSitesPage() {
   const { toast } = useToast();
@@ -85,18 +86,18 @@ export default function HarborSitesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="sm" onClick={() => handleTest(site.id)} disabled={testingId === site.id}>
+                <IconButton tooltip="Test connection" onClick={() => handleTest(site.id)} disabled={testingId === site.id}>
                   {testingId === site.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleToggle(site)}>
+                </IconButton>
+                <IconButton tooltip={site.active ? 'Deactivate' : 'Activate'} onClick={() => handleToggle(site)}>
                   {site.active ? <Zap className="h-4 w-4 text-success" /> : <ZapOff className="h-4 w-4 text-muted-foreground" />}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => { setEditing(site); setForm({ name: site.name, url: site.url, username: site.username, password: '', active: site.active }); setDialogOpen(true); }}>
+                </IconButton>
+                <IconButton tooltip="Edit" onClick={() => { setEditing(site); setForm({ name: site.name, url: site.url, username: site.username, password: '', active: site.active }); setDialogOpen(true); }}>
                   <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteId(site.id)}>
+                </IconButton>
+                <IconButton tooltip="Delete" onClick={() => setDeleteId(site.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                </IconButton>
               </div>
             </div>
           ))}

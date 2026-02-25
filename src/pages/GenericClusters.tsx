@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Database, Wifi, Trash2, Edit, Zap, Loader2 } from 'lucide-react';
+import { IconButton } from '@/components/IconButton';
 
 export default function GenericClustersPage() {
   const { toast } = useToast();
@@ -82,18 +83,18 @@ export default function GenericClustersPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" onClick={() => handleTest(c.id)} disabled={testingId === c.id}>
+                <IconButton tooltip="Test connection" onClick={() => handleTest(c.id)} disabled={testingId === c.id}>
                   {testingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleToggle(c)}>
+                </IconButton>
+                <IconButton tooltip={c.active ? 'Active' : 'Set active'} onClick={() => handleToggle(c)}>
                   <Zap className={`h-4 w-4 ${c.active ? 'text-success' : 'text-muted-foreground'}`} />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => { setEditing(c); setForm({ name: c.name, kubeconfig: '' }); setDialogOpen(true); }}>
+                </IconButton>
+                <IconButton tooltip="Edit" onClick={() => { setEditing(c); setForm({ name: c.name, kubeconfig: '' }); setDialogOpen(true); }}>
                   <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setDeleteId(c.id)}>
+                </IconButton>
+                <IconButton tooltip="Delete" onClick={() => setDeleteId(c.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                </IconButton>
               </div>
             </div>
           ))}
