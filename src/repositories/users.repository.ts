@@ -24,7 +24,7 @@ export const UsersRepository = {
         total: (d.total as number) ?? 0,
         active: (d.active as number) ?? 0,
         inactive: (d.inactive as number) ?? 0,
-        twoFactorEnabled: (d.twoFactorEnabled ?? d.twoFaEnabled ?? d.two_factor_enabled ?? d.twoFactorCount ?? 0) as number,
+        twoFactorEnabled: (d.with2FA ?? d.twoFactorEnabled ?? 0) as number,
       } as UserStats;
     }),
 };
