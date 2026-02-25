@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Server, Lock, User, Shield } from 'lucide-react';
+import { Server, Lock, User, Shield, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -15,6 +15,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [show2FA, setShow2FA] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [tempToken, setTempToken] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,11 +27,13 @@ export default function LoginPage() {
         username,
         password,
         twoFactorToken: show2FA ? twoFactorToken : undefined,
+        tempToken: show2FA ? tempToken : undefined,
         deviceName: navigator.userAgent,
         userAgent: navigator.userAgent,
       });
       if (result.requires2FA) {
         setShow2FA(true);
+        if (result.tempToken) setTempToken(result.tempToken);
         toast({ title: '2FA Required', description: 'Enter your authenticator code' });
       } else {
         navigate('/');
@@ -95,17 +99,25 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm">Password</Label>
-                <div className="relative">
+              <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 bg-background"
+                    className="pl-10 pr-10 bg-background"
                     placeholder="••••••••"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 

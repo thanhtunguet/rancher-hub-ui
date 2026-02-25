@@ -3,6 +3,7 @@ export interface LoginDto {
   username: string;
   password: string;
   twoFactorToken?: string;
+  tempToken?: string;
   deviceFingerprint?: string;
   deviceName?: string;
   userAgent?: string;
@@ -29,8 +30,11 @@ export interface ChangePasswordDto {
 }
 
 export interface AuthResponse {
-  access_token: string;
+  access_token?: string;
   requires2FA?: boolean;
+  requiresTwoFactor?: boolean;
+  tempToken?: string;
+  message?: string;
   user?: UserProfile;
 }
 

@@ -8,10 +8,11 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   requires2FA: boolean;
+  tempToken: string | null;
 }
 
 interface AuthContextType extends AuthState {
-  login: (dto: LoginDto) => Promise<{ requires2FA?: boolean }>;
+  login: (dto: LoginDto) => Promise<{ requires2FA?: boolean; tempToken?: string }>;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -24,14 +25,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
     requires2FA: false,
+    tempToken: null,
   });
 
   const refreshProfile = useCallback(async () => {
     try {
       const user = await AuthRepository.getProfile();
-      setState({ user, isAuthenticated: true, isLoading: false, requires2FA: false });
+      setState({ user, isAuthenticated: true, isLoading: false, requires2FA: false, tempToken: null });
     } catch {
-      setState({ user: null, isAuthenticated: false, isLoading: false, requires2FA: false });
+      setState({ user: null, isAuthenticated: false, isLoading: false, requires2FA: false, tempToken: null });
     }
   }, []);
 
@@ -46,9 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (dto: LoginDto) => {
     const res = await AuthRepository.login(dto);
-    if (res.requires2FA) {
-      setState(s => ({ ...s, requires2FA: true }));
-      return { requires2FA: true };
+    if (res.requiresTwoFactor || res.requires2FA) {
+      setState(s => ({ ...s, requires2FA: true, tempToken: res.tempToken || null }));
+      return { requires2FA: true, tempToken: res.tempToken };
     }
     if (res.access_token) {
       setToken(res.access_token);
@@ -59,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     clearToken();
-    setState({ user: null, isAuthenticated: false, isLoading: false, requires2FA: false });
+    setState({ user: null, isAuthenticated: false, isLoading: false, requires2FA: false, tempToken: null });
   };
 
   return (
