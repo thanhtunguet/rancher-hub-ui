@@ -14,24 +14,53 @@ import {
 import {
   Server, Globe, Layers, Container, Box, History,
   Users, Settings, ChevronLeft, ChevronRight, User, LogOut,
-  Activity, Database, Lock
+  Activity, Database, Lock, LayoutDashboard, Anchor, Bell, Mail
 } from 'lucide-react';
 import { getConfig } from '@/api/client';
 
-const navItems = [
-  { label: 'Dashboard', icon: Activity, path: '/' },
-  { label: 'Rancher Sites', icon: Server, path: '/sites' },
-  { label: 'Generic Clusters', icon: Database, path: '/clusters' },
-  { label: 'Harbor Sites', icon: Container, path: '/harbor' },
-  { label: 'Environments', icon: Globe, path: '/environments' },
-  { label: 'App Instances', icon: Box, path: '/app-instances' },
-  { label: 'Services', icon: Layers, path: '/services' },
-  
-  { label: 'ConfigMaps', icon: Settings, path: '/configmaps' },
-  { label: 'Secrets', icon: Lock, path: '/secrets' },
-  { label: 'Sync History', icon: History, path: '/sync-history' },
-  { label: 'Monitoring', icon: Activity, path: '/monitoring' },
-  { label: 'Users', icon: Users, path: '/users' },
+type NavItem = { label: string; icon: React.ElementType; path: string };
+type NavGroup = { label: string; items: NavItem[] };
+
+const navGroups: (NavItem | NavGroup)[] = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  {
+    label: 'Sites',
+    items: [
+      { label: 'Rancher', icon: Server, path: '/sites' },
+      { label: 'Harbor', icon: Anchor, path: '/harbor' },
+      { label: 'Generic Clusters', icon: Database, path: '/clusters' },
+    ],
+  },
+  {
+    label: 'Apps',
+    items: [
+      { label: 'Environments', icon: Globe, path: '/environments' },
+      { label: 'App Instances', icon: Box, path: '/app-instances' },
+    ],
+  },
+  {
+    label: 'State Management',
+    items: [
+      { label: 'Services', icon: Layers, path: '/services' },
+      { label: 'ConfigMaps', icon: Settings, path: '/configmaps' },
+      { label: 'Secrets', icon: Lock, path: '/secrets' },
+      { label: 'Sync History', icon: History, path: '/sync-history' },
+    ],
+  },
+  {
+    label: 'Monitoring',
+    items: [
+      { label: 'Monitored Instances', icon: Activity, path: '/monitoring' },
+      { label: 'Configuration', icon: Bell, path: '/monitoring/config' },
+      { label: 'Message Templates', icon: Mail, path: '/monitoring/templates' },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { label: 'Users', icon: Users, path: '/users' },
+    ],
+  },
 ];
 
 export default function AppLayout() {
@@ -55,19 +84,48 @@ export default function AppLayout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              activeClassName="bg-sidebar-accent text-primary font-medium"
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </NavLink>
-          ))}
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
+          {navGroups.map((entry, i) => {
+            if ('path' in entry) {
+              const item = entry as NavItem;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/'}
+                  className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                  activeClassName="bg-sidebar-accent text-primary font-medium"
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </NavLink>
+              );
+            }
+            const group = entry as NavGroup;
+            return (
+              <div key={group.label} className={i > 0 ? 'pt-3' : ''}>
+                {!collapsed && (
+                  <span className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {group.label}
+                  </span>
+                )}
+                <div className="mt-1 space-y-0.5">
+                  {group.items.map((item) => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end={item.path === '/'}
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+                      activeClassName="bg-sidebar-accent text-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
         {/* Collapse toggle */}
