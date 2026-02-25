@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { ConfigMapsRepository } from '@/repositories/configmaps.repository';
 import type { AppInstance, ConfigMap, ConfigMapCompareResult } from '@/api/types';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Settings, Loader2, CheckCircle, AlertTriangle, XCircle, Eye } from 'lucide-react';
 import { InstanceSelector } from '@/components/InstanceSelector';
-import { CompareDetailDialog } from '@/components/CompareDetailDialog';
+import { CompareDetailDialog, type CompareDetailItem } from '@/components/CompareDetailDialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 
 export default function ConfigMapsPage() {
   const { toast } = useToast();
@@ -13,30 +15,52 @@ export default function ConfigMapsPage() {
   const [configMaps, setConfigMaps] = useState<ConfigMap[]>([]);
   const [compareResult, setCompareResult] = useState<ConfigMapCompareResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedNames, setSelectedNames] = useState<string[]>([]);
 
   const isCompareMode = !!source && !!target;
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailName, setDetailName] = useState('');
-  const [detailStatus, setDetailStatus] = useState('');
-  const [detailData, setDetailData] = useState<any>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailItems, setDetailItems] = useState<CompareDetailItem[]>([]);
 
-  const openDetail = async (name: string, status: string) => {
+  const fetchDetails = async (names: { name: string; status: string }[]) => {
     if (!source || !target) return;
-    setDetailName(name); setDetailStatus(status); setDetailOpen(true); setDetailLoading(true); setDetailData(null);
-    try {
-      const data = await ConfigMapsRepository.getDetails(name, source.id, target.id);
-      setDetailData(data);
-    } catch { setDetailData(null); }
-    finally { setDetailLoading(false); }
+    setDetailOpen(true);
+    setDetailItems(names.map(n => ({ title: n.name, status: n.status, detail: null, loading: true })));
+
+    const results = await Promise.allSettled(
+      names.map(n => ConfigMapsRepository.getDetails(n.name, source.id, target.id))
+    );
+
+    setDetailItems(names.map((n, i) => {
+      const r = results[i];
+      const data = r.status === 'fulfilled' ? r.value : null;
+      // Normalize: if data has source/target use them, otherwise try to use data directly
+      const detail = data && (data.source !== undefined || data.target !== undefined)
+        ? { source: data.source, target: data.target, differences: data.differences }
+        : data ? { source: data, target: null } : null;
+      return { title: n.name, status: n.status, detail, loading: false };
+    }));
+  };
+
+  const openDetail = (name: string, status: string) => fetchDetails([{ name, status }]);
+
+  const openMultiDetail = () => {
+    if (!compareResult) return;
+    const items = compareResult.comparisons
+      .filter(c => selectedNames.includes(c.configMapName))
+      .map(c => ({ name: c.configMapName, status: c.status }));
+    if (items.length > 0) fetchDetails(items);
   };
 
   const handleSelectionChange = useCallback((s: AppInstance | null, t: AppInstance | null) => {
     setSource(s); setTarget(t);
-    setConfigMaps([]); setCompareResult(null);
+    setConfigMaps([]); setCompareResult(null); setSelectedNames([]);
   }, []);
+
+  const toggleSelection = (name: string) => {
+    setSelectedNames(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
 
   // Single instance
   useEffect(() => {
@@ -123,9 +147,17 @@ export default function ConfigMapsPage() {
             ))}
           </div>
 
+          {selectedNames.length > 0 && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <span className="text-sm">{selectedNames.length} item(s) selected</span>
+              <Button onClick={openMultiDetail} className="gap-2" size="sm"><Eye className="h-4 w-4" /> View Differences</Button>
+            </div>
+          )}
+
           <div className="surface-elevated rounded-lg overflow-hidden">
             <table className="w-full">
               <thead><tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
+                <th className="p-3 w-10"></th>
                 <th className="text-left p-3 font-medium">ConfigMap</th>
                 <th className="text-left p-3 font-medium">Status</th>
                 <th className="text-left p-3 font-medium">Differences</th>
@@ -133,6 +165,9 @@ export default function ConfigMapsPage() {
               <tbody>
                 {compareResult.comparisons.map(c => (
                   <tr key={c.configMapName} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(c.configMapName, c.status)}>
+                    <td className="p-3" onClick={e => e.stopPropagation()}>
+                      <Checkbox checked={selectedNames.includes(c.configMapName)} onCheckedChange={() => toggleSelection(c.configMapName)} />
+                    </td>
                     <td className="p-3 text-sm font-mono">{c.configMapName}</td>
                     <td className="p-3"><div className="flex items-center gap-2">{statusIcon(c.status)}<span className="text-xs capitalize">{c.status}</span></div></td>
                     <td className="p-3 text-xs text-muted-foreground font-mono max-w-xs truncate">{c.differences ? Object.keys(c.differences).join(', ') : '—'}</td>
@@ -147,12 +182,9 @@ export default function ConfigMapsPage() {
       <CompareDetailDialog
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        title={detailName}
-        status={detailStatus}
+        items={detailItems}
         sourceLabel={source?.name || 'Source'}
         targetLabel={target?.name || 'Target'}
-        loading={detailLoading}
-        detail={detailData}
       />
     </div>
   );

@@ -7,10 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Layers, Search, Tag, Loader2, RefreshCw, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Layers, Search, Tag, Loader2, RefreshCw, CheckCircle, AlertTriangle, XCircle, Eye } from 'lucide-react';
 import { IconButton } from '@/components/IconButton';
 import { InstanceSelector } from '@/components/InstanceSelector';
-import { CompareDetailDialog } from '@/components/CompareDetailDialog';
+import { CompareDetailDialog, type CompareDetailItem } from '@/components/CompareDetailDialog';
 
 export default function ServicesPage() {
   const { toast } = useToast();
@@ -38,20 +38,29 @@ export default function ServicesPage() {
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailName, setDetailName] = useState('');
-  const [detailStatus, setDetailStatus] = useState('');
-  const [detailData, setDetailData] = useState<any>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailItems, setDetailItems] = useState<CompareDetailItem[]>([]);
 
-  const openDetail = async (name: string, status: string) => {
-    if (!source || !target) return;
-    setDetailName(name); setDetailStatus(status); setDetailOpen(true); setDetailLoading(true); setDetailData(null);
-    try {
-      const data = await ServicesRepository.compareByInstance(source.id, target.id);
-      const match = data.comparisons.find(c => c.serviceName === name);
-      setDetailData(match ? { source: match.source, target: match.target, differences: match.differences } : null);
-    } catch { setDetailData(null); }
-    finally { setDetailLoading(false); }
+  const openDetails = async (names: { name: string; status: string }[]) => {
+    if (!source || !target || !compareResult) return;
+    setDetailOpen(true);
+    setDetailItems(names.map(n => {
+      const match = compareResult.comparisons.find(c => c.serviceName === n.name);
+      return {
+        title: n.name,
+        status: n.status,
+        detail: match ? { source: match.source, target: match.target, differences: match.differences } : null,
+      };
+    }));
+  };
+
+  const openDetail = (name: string, status: string) => openDetails([{ name, status }]);
+
+  const openMultiDetail = () => {
+    if (!compareResult) return;
+    const items = compareResult.comparisons
+      .filter(c => selectedIds.includes(c.serviceName))
+      .map(c => ({ name: c.serviceName, status: c.status }));
+    if (items.length > 0) openDetails(items);
   };
 
   const isCompareMode = !!source && !!target;
@@ -221,6 +230,7 @@ export default function ServicesPage() {
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
               <span className="text-sm">{selectedIds.length} service(s) selected</span>
+              <Button onClick={openMultiDetail} className="gap-2" size="sm"><Eye className="h-4 w-4" /> View Differences</Button>
               <Button onClick={() => setSyncDialogOpen(true)} className="gap-2"><RefreshCw className="h-4 w-4" /> Sync Selected</Button>
             </div>
           )}
@@ -289,12 +299,9 @@ export default function ServicesPage() {
       <CompareDetailDialog
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        title={detailName}
-        status={detailStatus}
+        items={detailItems}
         sourceLabel={source?.name || 'Source'}
         targetLabel={target?.name || 'Target'}
-        loading={detailLoading}
-        detail={detailData}
       />
 
       {/* Sync confirmation */}
