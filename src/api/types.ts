@@ -3,7 +3,6 @@ export interface LoginDto {
   username: string;
   password: string;
   twoFactorToken?: string;
-  tempToken?: string;
   deviceFingerprint?: string;
   deviceName?: string;
   userAgent?: string;
