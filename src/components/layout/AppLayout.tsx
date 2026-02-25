@@ -12,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Server, Globe, Layers, Container, Box, GitCompare, History,
+  Server, Globe, Layers, Container, Box, History,
   Users, Settings, ChevronLeft, ChevronRight, User, LogOut,
-  Shield, Activity, Menu, Database, Lock
+  Activity, Database, Lock
 } from 'lucide-react';
 import { getConfig } from '@/api/client';
 
@@ -26,7 +26,7 @@ const navItems = [
   { label: 'Environments', icon: Globe, path: '/environments' },
   { label: 'App Instances', icon: Box, path: '/app-instances' },
   { label: 'Services', icon: Layers, path: '/services' },
-  { label: 'Compare & Sync', icon: GitCompare, path: '/compare' },
+  
   { label: 'ConfigMaps', icon: Settings, path: '/configmaps' },
   { label: 'Secrets', icon: Lock, path: '/secrets' },
   { label: 'Sync History', icon: History, path: '/sync-history' },
