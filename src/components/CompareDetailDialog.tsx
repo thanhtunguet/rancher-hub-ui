@@ -234,7 +234,7 @@ export function CompareDetailDialog({
           </p>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 -mx-6 px-6" style={{ maxHeight: 'calc(85vh - 120px)' }}>
           <div className="space-y-6">
             {resolvedItems.map((item, idx) => (
               <div key={item.title + idx}>
