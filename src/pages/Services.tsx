@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ServicesRepository } from '@/repositories/services.repository';
-import type { Service, AppInstance, CompareResult, ImageTag, SyncServicesDto } from '@/api/types';
+import { HarborSitesRepository } from '@/repositories/harbor-sites.repository';
+import type { Service, AppInstance, CompareResult, ImageTag, SyncServicesDto, HarborSite } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -120,12 +121,58 @@ export default function ServicesPage() {
     setSelectedIds(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
   };
 
+  const parseHarborImage = (imageRepo: string, harborSite: HarborSite): { project: string; repository: string } | null => {
+    if (!imageRepo) return null;
+    const harborHost = new URL(harborSite.url).host;
+    // imageRepo format: harbor.example.com/project/repo or harbor.example.com/project/sub/repo
+    if (!imageRepo.startsWith(harborHost)) return null;
+    const path = imageRepo.slice(harborHost.length + 1); // remove host + leading slash
+    const parts = path.split('/');
+    if (parts.length < 2) return null;
+    const project = parts[0];
+    const repository = parts.slice(1).join('/');
+    return { project, repository };
+  };
+
   const openTagDialog = async (service: Service) => {
     setSelectedService(service);
     setTagDialogOpen(true);
     setTagsLoading(true);
-    try { setTags(await ServicesRepository.getImageTags(service.id)); }
-    catch { toast({ title: 'Failed to load tags', variant: 'destructive' }); }
+    setTags([]);
+    setSelectedTag('');
+    try {
+      // Try to detect if this is a harbor image
+      let harborParsed: { project: string; repository: string } | null = null;
+      let activeSite: HarborSite | null = null;
+      if (service.imageRepo) {
+        try {
+          activeSite = await HarborSitesRepository.getActiveSite();
+          if (activeSite) {
+            harborParsed = parseHarborImage(service.imageRepo, activeSite);
+          }
+        } catch {
+          // No active harbor site, fall back to default
+        }
+      }
+
+      if (harborParsed && activeSite) {
+        // Fetch tags from harbor
+        const artifacts = await HarborSitesRepository.getArtifacts(activeSite.id, harborParsed.project, harborParsed.repository);
+        // Map harbor artifacts to ImageTag format
+        const harborTags: ImageTag[] = (artifacts || []).flatMap((artifact: any) =>
+          (artifact.tags || []).map((tag: any) => ({
+            name: tag.name,
+            pushedAt: artifact.push_time || artifact.pushedAt,
+            size: artifact.size,
+            sizeFormatted: artifact.size ? `${(artifact.size / 1024 / 1024).toFixed(1)} MB` : undefined,
+          }))
+        );
+        setTags(harborTags);
+      } else {
+        // DockerHub or fallback
+        setTags(await ServicesRepository.getImageTags(service.id));
+      }
+    } catch { toast({ title: 'Failed to load tags', variant: 'destructive' }); }
     finally { setTagsLoading(false); }
   };
 
