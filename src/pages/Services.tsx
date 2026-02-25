@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Layers, Search, Tag, Loader2, RefreshCw, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { IconButton } from '@/components/IconButton';
 import { InstanceSelector } from '@/components/InstanceSelector';
+import { CompareDetailDialog } from '@/components/CompareDetailDialog';
 
 export default function ServicesPage() {
   const { toast } = useToast();
@@ -34,6 +35,24 @@ export default function ServicesPage() {
   const [selectedTag, setSelectedTag] = useState('');
   const [tagsLoading, setTagsLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  // Detail dialog
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailName, setDetailName] = useState('');
+  const [detailStatus, setDetailStatus] = useState('');
+  const [detailData, setDetailData] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const openDetail = async (name: string, status: string) => {
+    if (!source || !target) return;
+    setDetailName(name); setDetailStatus(status); setDetailOpen(true); setDetailLoading(true); setDetailData(null);
+    try {
+      const data = await ServicesRepository.compareByInstance(source.id, target.id);
+      const match = data.comparisons.find(c => c.serviceName === name);
+      setDetailData(match ? { source: match.source, target: match.target, differences: match.differences } : null);
+    } catch { setDetailData(null); }
+    finally { setDetailLoading(false); }
+  };
 
   const isCompareMode = !!source && !!target;
 
@@ -217,8 +236,8 @@ export default function ServicesPage() {
               </tr></thead>
               <tbody>
                 {compareResult.comparisons.map(c => (
-                  <tr key={c.serviceName} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                    <td className="p-3">
+                  <tr key={c.serviceName} className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => openDetail(c.serviceName, c.status)}>
+                    <td className="p-3" onClick={e => e.stopPropagation()}>
                       {c.status !== 'identical' && <Checkbox checked={selectedIds.includes(c.serviceName)} onCheckedChange={() => toggleSelection(c.serviceName)} />}
                     </td>
                     <td className="p-3 text-sm font-medium font-mono">{c.serviceName}</td>
@@ -265,6 +284,18 @@ export default function ServicesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Compare detail */}
+      <CompareDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        title={detailName}
+        status={detailStatus}
+        sourceLabel={source?.name || 'Source'}
+        targetLabel={target?.name || 'Target'}
+        loading={detailLoading}
+        detail={detailData}
+      />
 
       {/* Sync confirmation */}
       <AlertDialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
