@@ -36,6 +36,11 @@ export default function ServicesPage() {
   const [selectedTag, setSelectedTag] = useState('');
   const [tagsLoading, setTagsLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [tagPage, setTagPage] = useState(0);
+  const TAGS_PER_PAGE = 10;
+
+  // Double confirmation
+  const [confirmStep, setConfirmStep] = useState(0); // 0=none, 1=first confirm, 2=second confirm
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
@@ -176,7 +181,17 @@ export default function ServicesPage() {
     finally { setTagsLoading(false); }
   };
 
-  const handleUpdateTag = async () => {
+  const handleDeployClick = () => {
+    if (!selectedTag) return;
+    setConfirmStep(1);
+  };
+
+  const handleConfirmFirst = () => {
+    setConfirmStep(2);
+  };
+
+  const handleConfirmSecond = async () => {
+    setConfirmStep(0);
     if (!selectedService || !selectedTag) return;
     setUpdating(true);
     try {
@@ -314,33 +329,98 @@ export default function ServicesPage() {
       )}
 
       {/* Tag dialog */}
-      <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
-        <DialogContent>
+      <Dialog open={tagDialogOpen} onOpenChange={(open) => { setTagDialogOpen(open); if (!open) { setTagPage(0); setSelectedTag(''); } }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Update Image Tag — {selectedService?.name}</DialogTitle></DialogHeader>
           <div className="py-2">
-            <p className="text-sm text-muted-foreground mb-3">Current: <span className="font-mono text-primary">{selectedService?.imageTag}</span></p>
+            <p className="text-sm text-muted-foreground mb-3">
+              Current: <span className="font-mono text-primary">{selectedService?.imageTag}</span>
+              {selectedService?.imageRepo && <span className="ml-2 text-xs font-mono text-muted-foreground">({selectedService.imageRepo})</span>}
+            </p>
             {tagsLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            ) : tags.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No tags found</p>
             ) : (
-              <div className="max-h-[300px] overflow-y-auto space-y-1">
-                {tags.map(tag => (
-                  <button key={tag.name} onClick={() => setSelectedTag(tag.name)} className={`w-full text-left p-3 rounded-md border transition-colors text-sm ${selectedTag === tag.name ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono">{tag.name}</span>
-                      {tag.sizeFormatted && <span className="text-xs text-muted-foreground">{tag.sizeFormatted}</span>}
+              <>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead><tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider bg-muted/30">
+                      <th className="text-left p-3 font-medium w-8"></th>
+                      <th className="text-left p-3 font-medium">Tag</th>
+                      <th className="text-left p-3 font-medium">Pushed</th>
+                      <th className="text-right p-3 font-medium">Size</th>
+                    </tr></thead>
+                    <tbody>
+                      {tags.slice(tagPage * TAGS_PER_PAGE, (tagPage + 1) * TAGS_PER_PAGE).map(tag => (
+                        <tr
+                          key={tag.name}
+                          onClick={() => setSelectedTag(tag.name)}
+                          className={`border-b border-border/50 cursor-pointer transition-colors ${selectedTag === tag.name ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
+                        >
+                          <td className="p-3">
+                            <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${selectedTag === tag.name ? 'border-primary' : 'border-muted-foreground/30'}`}>
+                              {selectedTag === tag.name && <div className="h-2 w-2 rounded-full bg-primary" />}
+                            </div>
+                          </td>
+                          <td className="p-3 text-sm font-mono">{tag.name}</td>
+                          <td className="p-3 text-xs text-muted-foreground">{tag.pushedAt ? new Date(tag.pushedAt).toLocaleDateString() : '—'}</td>
+                          <td className="p-3 text-xs text-muted-foreground text-right">{tag.sizeFormatted || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {tags.length > TAGS_PER_PAGE && (
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-xs text-muted-foreground">{tags.length} tags total — page {tagPage + 1} of {Math.ceil(tags.length / TAGS_PER_PAGE)}</p>
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" disabled={tagPage === 0} onClick={() => setTagPage(p => p - 1)}>Previous</Button>
+                      <Button variant="outline" size="sm" disabled={(tagPage + 1) * TAGS_PER_PAGE >= tags.length} onClick={() => setTagPage(p => p + 1)}>Next</Button>
                     </div>
-                    {tag.pushedAt && <p className="text-xs text-muted-foreground mt-1">{new Date(tag.pushedAt).toLocaleDateString()}</p>}
-                  </button>
-                ))}
-              </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTagDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpdateTag} disabled={!selectedTag || updating}>{updating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Deploy</Button>
+            <Button onClick={handleDeployClick} disabled={!selectedTag || updating}>{updating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Deploy</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* First confirmation */}
+      <AlertDialog open={confirmStep === 1} onOpenChange={(open) => { if (!open) setConfirmStep(0); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Image Update</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to update <span className="font-mono font-semibold">{selectedService?.name}</span> to tag <span className="font-mono font-semibold">{selectedTag}</span>. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmFirst}>Yes, Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Second confirmation */}
+      <AlertDialog open={confirmStep === 2} onOpenChange={(open) => { if (!open) setConfirmStep(0); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">⚠️ Final Confirmation</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action will deploy tag <span className="font-mono font-semibold">{selectedTag}</span> to <span className="font-mono font-semibold">{selectedService?.name}</span>. This cannot be undone easily. Proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSecond} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Deploy Now</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Compare detail */}
       <CompareDetailDialog
