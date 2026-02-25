@@ -14,7 +14,7 @@ import {
 import {
   Server, Globe, Layers, Container, Box, History,
   Users, Settings, ChevronLeft, ChevronRight, User, LogOut,
-  Activity, Database, Lock, LayoutDashboard, Anchor, Bell, Mail
+  Activity, Database, Lock, LayoutDashboard, Anchor, Bell, Mail, Smartphone
 } from 'lucide-react';
 import { getConfig } from '@/api/client';
 
@@ -167,6 +167,10 @@ export default function AppLayout() {
                 <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <User className="h-4 w-4 mr-2" />
                   Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/trusted-devices')}>
+                  <Smartphone className="h-4 w-4 mr-2" />
+                  Trusted Devices
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <Settings className="h-4 w-4 mr-2" />
