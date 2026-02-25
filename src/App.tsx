@@ -41,7 +41,7 @@ const App = () => (
               <Route path="sites" element={<Sites />} />
               <Route path="environments" element={<Environments />} />
               <Route path="harbor" element={<HarborSites />} />
-              <Route path="harbor/:siteId/browse" element={<HarborBrowser />} />
+              <Route path="harbor/:siteId/browse/*" element={<HarborBrowser />} />
               <Route path="clusters" element={<GenericClusters />} />
               <Route path="app-instances" element={<AppInstances />} />
               <Route path="services" element={<Services />} />
