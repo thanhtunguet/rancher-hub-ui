@@ -4,6 +4,7 @@ import type { AppInstance, SecretCompareResult } from '@/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { Lock, Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { InstanceSelector } from '@/components/InstanceSelector';
+import { CompareDetailDialog } from '@/components/CompareDetailDialog';
 
 export default function SecretsPage() {
   const { toast } = useToast();
@@ -14,6 +15,23 @@ export default function SecretsPage() {
   const [loading, setLoading] = useState(false);
 
   const isCompareMode = !!source && !!target;
+
+  // Detail dialog
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailName, setDetailName] = useState('');
+  const [detailStatus, setDetailStatus] = useState('');
+  const [detailData, setDetailData] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const openDetail = async (name: string, status: string) => {
+    if (!source || !target) return;
+    setDetailName(name); setDetailStatus(status); setDetailOpen(true); setDetailLoading(true); setDetailData(null);
+    try {
+      const data = await SecretsRepository.getDetails(name, source.id, target.id);
+      setDetailData(data);
+    } catch { setDetailData(null); }
+    finally { setDetailLoading(false); }
+  };
 
   const handleSelectionChange = useCallback((s: AppInstance | null, t: AppInstance | null) => {
     setSource(s); setTarget(t);
@@ -116,7 +134,7 @@ export default function SecretsPage() {
               </tr></thead>
               <tbody>
                 {compareResult.comparisons.map(c => (
-                  <tr key={c.secretName} className="border-b border-border/50 hover:bg-muted/30">
+                  <tr key={c.secretName} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(c.secretName, c.status)}>
                     <td className="p-3 text-sm font-mono">{c.secretName}</td>
                     <td className="p-3"><div className="flex items-center gap-2">{statusIcon(c.status)}<span className="text-xs capitalize">{c.status}</span></div></td>
                     <td className="p-3 text-xs text-muted-foreground">
@@ -129,6 +147,18 @@ export default function SecretsPage() {
           </div>
         </>
       )}
+
+      <CompareDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        title={detailName}
+        status={detailStatus}
+        sourceLabel={source?.name || 'Source'}
+        targetLabel={target?.name || 'Target'}
+        loading={detailLoading}
+        detail={detailData}
+        maskedKeys={['data']}
+      />
     </div>
   );
 }

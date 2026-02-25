@@ -4,6 +4,7 @@ import type { AppInstance, ConfigMap, ConfigMapCompareResult } from '@/api/types
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Loader2, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { InstanceSelector } from '@/components/InstanceSelector';
+import { CompareDetailDialog } from '@/components/CompareDetailDialog';
 
 export default function ConfigMapsPage() {
   const { toast } = useToast();
@@ -14,6 +15,23 @@ export default function ConfigMapsPage() {
   const [loading, setLoading] = useState(false);
 
   const isCompareMode = !!source && !!target;
+
+  // Detail dialog
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailName, setDetailName] = useState('');
+  const [detailStatus, setDetailStatus] = useState('');
+  const [detailData, setDetailData] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const openDetail = async (name: string, status: string) => {
+    if (!source || !target) return;
+    setDetailName(name); setDetailStatus(status); setDetailOpen(true); setDetailLoading(true); setDetailData(null);
+    try {
+      const data = await ConfigMapsRepository.getDetails(name, source.id, target.id);
+      setDetailData(data);
+    } catch { setDetailData(null); }
+    finally { setDetailLoading(false); }
+  };
 
   const handleSelectionChange = useCallback((s: AppInstance | null, t: AppInstance | null) => {
     setSource(s); setTarget(t);
@@ -114,7 +132,7 @@ export default function ConfigMapsPage() {
               </tr></thead>
               <tbody>
                 {compareResult.comparisons.map(c => (
-                  <tr key={c.configMapName} className="border-b border-border/50 hover:bg-muted/30">
+                  <tr key={c.configMapName} className="border-b border-border/50 hover:bg-muted/30 cursor-pointer" onClick={() => openDetail(c.configMapName, c.status)}>
                     <td className="p-3 text-sm font-mono">{c.configMapName}</td>
                     <td className="p-3"><div className="flex items-center gap-2">{statusIcon(c.status)}<span className="text-xs capitalize">{c.status}</span></div></td>
                     <td className="p-3 text-xs text-muted-foreground font-mono max-w-xs truncate">{c.differences ? Object.keys(c.differences).join(', ') : '—'}</td>
@@ -125,6 +143,17 @@ export default function ConfigMapsPage() {
           </div>
         </>
       )}
+
+      <CompareDetailDialog
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        title={detailName}
+        status={detailStatus}
+        sourceLabel={source?.name || 'Source'}
+        targetLabel={target?.name || 'Target'}
+        loading={detailLoading}
+        detail={detailData}
+      />
     </div>
   );
 }
