@@ -21,6 +21,7 @@ import Secrets from "./pages/Secrets";
 import SyncHistory from "./pages/SyncHistory";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
+import TrustedDevices from "./pages/TrustedDevices";
 import Settings from "./pages/Settings";
 import Monitoring from "./pages/Monitoring";
 import MonitoringConfig from "./pages/MonitoringConfig";
@@ -56,6 +57,7 @@ const App = () => (
               <Route path="monitoring/templates" element={<MessageTemplates />} />
               <Route path="users" element={<Users />} />
               <Route path="profile" element={<Profile />} />
+              <Route path="trusted-devices" element={<TrustedDevices />} />
               <Route path="settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />
