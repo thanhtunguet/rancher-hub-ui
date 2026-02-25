@@ -18,5 +18,13 @@ export const UsersRepository = {
     getApiClient().delete(`/api/users/${id}`, { data: dto }).then(r => r.data),
 
   getStats: () =>
-    getApiClient().get<UserStats>('/api/users/stats').then(r => r.data),
+    getApiClient().get('/api/users/stats').then(r => {
+      const d = r.data as Record<string, unknown>;
+      return {
+        total: (d.total as number) ?? 0,
+        active: (d.active as number) ?? 0,
+        inactive: (d.inactive as number) ?? 0,
+        twoFactorEnabled: (d.twoFactorEnabled ?? d.twoFaEnabled ?? d.two_factor_enabled ?? d.twoFactorCount ?? 0) as number,
+      } as UserStats;
+    }),
 };
