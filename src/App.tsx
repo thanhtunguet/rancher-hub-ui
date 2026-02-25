@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/Sites";
 import Environments from "./pages/Environments";
 import HarborSites from "./pages/HarborSites";
+import HarborBrowser from "./pages/HarborBrowser";
 import GenericClusters from "./pages/GenericClusters";
 import AppInstances from "./pages/AppInstances";
 import Services from "./pages/Services";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="sites" element={<Sites />} />
               <Route path="environments" element={<Environments />} />
               <Route path="harbor" element={<HarborSites />} />
+              <Route path="harbor/:siteId/browse" element={<HarborBrowser />} />
               <Route path="clusters" element={<GenericClusters />} />
               <Route path="app-instances" element={<AppInstances />} />
               <Route path="services" element={<Services />} />

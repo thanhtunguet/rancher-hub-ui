@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HarborSitesRepository } from '@/repositories/harbor-sites.repository';
 import type { HarborSite, CreateHarborSiteDto } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -7,11 +8,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Container, Wifi, Trash2, Edit, Zap, ZapOff, Loader2 } from 'lucide-react';
+import { Plus, Container, Wifi, Trash2, Edit, Zap, ZapOff, Loader2, FolderOpen } from 'lucide-react';
 import { IconButton } from '@/components/IconButton';
 
 export default function HarborSitesPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [sites, setSites] = useState<HarborSite[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -86,6 +88,9 @@ export default function HarborSitesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <IconButton tooltip="Browse registry" onClick={() => navigate(`/harbor/${site.id}/browse`)}>
+                  <FolderOpen className="h-4 w-4" />
+                </IconButton>
                 <IconButton tooltip="Test connection" onClick={() => handleTest(site.id)} disabled={testingId === site.id}>
                   {testingId === site.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
                 </IconButton>
