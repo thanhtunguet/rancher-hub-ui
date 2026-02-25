@@ -52,6 +52,17 @@
     --info: 210 72% 52%;
     --info-foreground: 0 0% 100%;
 
+    /* Diff colors (Git / JetBrains style) */
+    --diff-added-bg: 130 50% 15%;
+    --diff-added-fg: 130 60% 70%;
+    --diff-added-highlight: 130 55% 22%;
+    --diff-removed-bg: 0 50% 15%;
+    --diff-removed-fg: 0 60% 70%;
+    --diff-removed-highlight: 0 50% 22%;
+    --diff-modified-bg: 210 45% 16%;
+    --diff-modified-fg: 210 60% 72%;
+    --diff-modified-highlight: 210 50% 24%;
+
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   }
