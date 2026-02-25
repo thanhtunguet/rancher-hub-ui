@@ -23,6 +23,8 @@ import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Monitoring from "./pages/Monitoring";
+import MonitoringConfig from "./pages/MonitoringConfig";
+import MessageTemplates from "./pages/MessageTemplates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +52,8 @@ const App = () => (
               <Route path="secrets" element={<Secrets />} />
               <Route path="sync-history" element={<SyncHistory />} />
               <Route path="monitoring" element={<Monitoring />} />
+              <Route path="monitoring/config" element={<MonitoringConfig />} />
+              <Route path="monitoring/templates" element={<MessageTemplates />} />
               <Route path="users" element={<Users />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
