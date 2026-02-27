@@ -36,13 +36,13 @@ export const HarborSitesRepository = {
     getApiClient().get(`/api/harbor-sites/${id}/projects`).then(r => r.data),
 
   getRepositories: (id: string, projectName: string) =>
-    getApiClient().get(`/api/harbor-sites/${id}/repositories/${projectName}`).then(r => r.data),
+    getApiClient().get(`/api/harbor-sites/${id}/repositories/${encodeURIComponent(projectName)}`).then(r => r.data),
 
   getArtifacts: (id: string, projectName: string, repositoryName: string) =>
-    getApiClient().get(`/api/harbor-sites/${id}/artifacts/${projectName}/${repositoryName}`).then(r => r.data),
+    getApiClient().get(`/api/harbor-sites/${id}/artifacts/${encodeURIComponent(projectName)}/${encodeURIComponent(repositoryName)}`).then(r => r.data),
 
   getTagDetail: (id: string, projectName: string, repositoryName: string, tag: string) =>
-    getApiClient().get(`/api/harbor-sites/${id}/tag-detail/${projectName}/${repositoryName}/${tag}`).then(r => r.data),
+    getApiClient().get(`/api/harbor-sites/${id}/tag-detail/${encodeURIComponent(projectName)}/${encodeURIComponent(repositoryName)}/${encodeURIComponent(tag)}`).then(r => r.data),
 
   testImageSize: (id: string, imageTag: string) =>
     getApiClient().get(`/api/harbor-sites/${id}/test-image-size`, { params: { imageTag } }).then(r => r.data),

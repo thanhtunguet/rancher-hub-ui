@@ -25,7 +25,8 @@ export default function ServicesPage() {
 
   // Compare mode
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedServiceNames, setSelectedServiceNames] = useState<string[]>([]);
+  const [sourceServiceIdByName, setSourceServiceIdByName] = useState<Record<string, string>>({});
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -64,7 +65,7 @@ export default function ServicesPage() {
   const openMultiDetail = () => {
     if (!compareResult) return;
     const items = compareResult.comparisons
-      .filter(c => selectedIds.includes(c.serviceName))
+      .filter(c => selectedServiceNames.includes(c.serviceName))
       .map(c => ({ name: c.serviceName, status: c.status }));
     if (items.length > 0) openDetails(items);
   };
@@ -76,7 +77,8 @@ export default function ServicesPage() {
     setTarget(t);
     setServices([]);
     setCompareResult(null);
-    setSelectedIds([]);
+    setSelectedServiceNames([]);
+    setSourceServiceIdByName({});
   }, []);
 
   // Fetch single-instance services
@@ -96,7 +98,19 @@ export default function ServicesPage() {
     if (!source || !target) return;
     setLoading(true);
     try {
-      setCompareResult(await ServicesRepository.compareByInstance(source.id, target.id));
+      const [comparison, sourceServices] = await Promise.all([
+        ServicesRepository.compareByInstance(source.id, target.id),
+        ServicesRepository.getByAppInstance(source.id),
+      ]);
+
+      const idByName: Record<string, string> = {};
+      sourceServices.forEach((svc) => {
+        idByName[svc.name] = svc.id;
+      });
+
+      setSourceServiceIdByName(idByName);
+      setCompareResult(comparison);
+      setSelectedServiceNames((prev) => prev.filter((name) => !!idByName[name]));
     } catch { toast({ title: 'Compare failed', variant: 'destructive' }); }
     finally { setLoading(false); }
   }, [source, target]);
@@ -104,26 +118,44 @@ export default function ServicesPage() {
   useEffect(() => { if (source && target) fetchComparison(); }, [source, target]);
 
   const handleSync = async () => {
-    if (!source || !target || selectedIds.length === 0) return;
+    if (!source || !target || selectedServiceNames.length === 0) return;
+    const serviceIds = selectedServiceNames
+      .map((name) => sourceServiceIdByName[name])
+      .filter((id): id is string => Boolean(id));
+
+    if (serviceIds.length === 0) {
+      toast({ title: 'No syncable services selected', description: 'Only services available in source can be synced.', variant: 'destructive' });
+      return;
+    }
+
+    if (serviceIds.length < selectedServiceNames.length) {
+      toast({
+        title: 'Some selected services were skipped',
+        description: `${selectedServiceNames.length - serviceIds.length} item(s) are missing in source and cannot be synced.`,
+      });
+    }
+
     setSyncing(true);
     try {
       const dto: SyncServicesDto = {
         sourceEnvironmentId: source.environmentId,
         targetEnvironmentId: target.environmentId,
-        serviceIds: selectedIds,
+        serviceIds,
         targetAppInstanceIds: [target.id],
       };
       await ServicesRepository.syncServices(dto);
-      toast({ title: 'Sync complete', description: `${selectedIds.length} services synced` });
+      toast({ title: 'Sync complete', description: `${serviceIds.length} services synced` });
       setSyncDialogOpen(false);
-      setSelectedIds([]);
+      setSelectedServiceNames([]);
       fetchComparison();
     } catch { toast({ title: 'Sync failed', variant: 'destructive' }); }
     finally { setSyncing(false); }
   };
 
   const toggleSelection = (name: string) => {
-    setSelectedIds(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+    setSelectedServiceNames((prev) => (
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+    ));
   };
 
   const parseHarborImage = (imageRepo: string, harborSite: HarborSite): { project: string; repository: string } | null => {
@@ -164,8 +196,8 @@ export default function ServicesPage() {
         // Fetch tags from harbor
         const artifacts = await HarborSitesRepository.getArtifacts(activeSite.id, harborParsed.project, harborParsed.repository);
         // Map harbor artifacts to ImageTag format
-        const harborTags: ImageTag[] = (artifacts || []).flatMap((artifact: any) =>
-          (artifact.tags || []).map((tag: any) => ({
+        const harborTags: ImageTag[] = (artifacts || []).flatMap((artifact: { tags?: { name: string }[]; push_time?: string; pushedAt?: string; size?: number }) =>
+          (artifact.tags || []).map((tag: { name: string }) => ({
             name: tag.name,
             pushedAt: artifact.push_time || artifact.pushedAt,
             size: artifact.size,
@@ -289,9 +321,9 @@ export default function ServicesPage() {
             ))}
           </div>
 
-          {selectedIds.length > 0 && (
+          {selectedServiceNames.length > 0 && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
-              <span className="text-sm">{selectedIds.length} service(s) selected</span>
+              <span className="text-sm">{selectedServiceNames.length} service(s) selected</span>
               <Button onClick={openMultiDetail} className="gap-2" size="sm"><Eye className="h-4 w-4" /> View Differences</Button>
               <Button onClick={() => setSyncDialogOpen(true)} className="gap-2"><RefreshCw className="h-4 w-4" /> Sync Selected</Button>
             </div>
@@ -310,7 +342,12 @@ export default function ServicesPage() {
                 {compareResult.comparisons.map(c => (
                   <tr key={c.serviceName} className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => openDetail(c.serviceName, c.status)}>
                     <td className="p-3" onClick={e => e.stopPropagation()}>
-                      {c.status !== 'identical' && <Checkbox checked={selectedIds.includes(c.serviceName)} onCheckedChange={() => toggleSelection(c.serviceName)} />}
+                      {c.status !== 'identical' && sourceServiceIdByName[c.serviceName] && (
+                        <Checkbox
+                          checked={selectedServiceNames.includes(c.serviceName)}
+                          onCheckedChange={() => toggleSelection(c.serviceName)}
+                        />
+                      )}
                     </td>
                     <td className="p-3 text-sm font-medium font-mono">{c.serviceName}</td>
                     <td className="p-3 text-xs text-muted-foreground">{c.workloadType || '—'}</td>
@@ -436,7 +473,7 @@ export default function ServicesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Sync</AlertDialogTitle>
-            <AlertDialogDescription>Sync {selectedIds.length} service(s) from source to target? This will update image tags on the target.</AlertDialogDescription>
+            <AlertDialogDescription>Sync {selectedServiceNames.length} service(s) from source to target? This will update image tags on the target.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
