@@ -20,6 +20,7 @@ export default function HarborSitesPage() {
   const [editing, setEditing] = useState<HarborSite | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateHarborSiteDto>({ name: '', url: '', username: '', password: '', active: true });
   const [saving, setSaving] = useState(false);
 
@@ -57,11 +58,15 @@ export default function HarborSitesPage() {
   };
 
   const handleToggle = async (site: HarborSite) => {
+    const nextActive = !site.active;
+    setTogglingId(site.id);
     try {
-      if (site.active) { await HarborSitesRepository.deactivate(site.id); }
-      else { await HarborSitesRepository.activate(site.id); }
+      if (nextActive) { await HarborSitesRepository.activate(site.id); }
+      else { await HarborSitesRepository.deactivate(site.id); }
+      toast({ title: nextActive ? 'Harbor site activated' : 'Harbor site deactivated' });
       fetchData();
     } catch { toast({ title: 'Error', variant: 'destructive' }); }
+    finally { setTogglingId(null); }
   };
 
   return (
@@ -94,8 +99,12 @@ export default function HarborSitesPage() {
                 <IconButton tooltip="Test connection" onClick={() => handleTest(site.id)} disabled={testingId === site.id}>
                   {testingId === site.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
                 </IconButton>
-                <IconButton tooltip={site.active ? 'Deactivate' : 'Activate'} onClick={() => handleToggle(site)}>
-                  {site.active ? <Zap className="h-4 w-4 text-success" /> : <ZapOff className="h-4 w-4 text-muted-foreground" />}
+                <IconButton tooltip={site.active ? 'Deactivate' : 'Activate'} onClick={() => handleToggle(site)} disabled={togglingId === site.id}>
+                  {togglingId === site.id
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : site.active
+                      ? <Zap className="h-4 w-4 text-success" />
+                      : <ZapOff className="h-4 w-4 text-muted-foreground" />}
                 </IconButton>
                 <IconButton tooltip="Edit" onClick={() => { setEditing(site); setForm({ name: site.name, url: site.url, username: site.username, password: '', active: site.active }); setDialogOpen(true); }}>
                   <Edit className="h-4 w-4" />

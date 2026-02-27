@@ -23,6 +23,7 @@ export default function SitesPage() {
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateSiteDto>({ name: '', url: '', token: '' });
   const [saving, setSaving] = useState(false);
 
@@ -74,14 +75,18 @@ export default function SitesPage() {
   };
 
   const handleToggleActive = async (site: Site) => {
+    const nextActive = !site.active;
+    setTogglingId(site.id);
     try {
-      if (site.active) {
-        await SitesRepository.deactivate(site.id);
-      } else {
+      if (nextActive) {
         await SitesRepository.activate(site.id);
+      } else {
+        await SitesRepository.deactivate(site.id);
       }
+      toast({ title: nextActive ? 'Site activated' : 'Site deactivated' });
       fetchSites();
     } catch { toast({ title: 'Error', description: 'Failed to update status', variant: 'destructive' }); }
+    finally { setTogglingId(null); }
   };
 
   const openEdit = (site: Site) => {
@@ -135,8 +140,12 @@ export default function SitesPage() {
                 <IconButton tooltip="Test connection" onClick={() => handleTest(site.id)} disabled={testingId === site.id}>
                   {testingId === site.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
                 </IconButton>
-                <IconButton tooltip={site.active ? 'Deactivate' : 'Activate'} onClick={() => handleToggleActive(site)}>
-                  {site.active ? <Zap className="h-4 w-4 text-success" /> : <ZapOff className="h-4 w-4 text-muted-foreground" />}
+                <IconButton tooltip={site.active ? 'Deactivate' : 'Activate'} onClick={() => handleToggleActive(site)} disabled={togglingId === site.id}>
+                  {togglingId === site.id
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : site.active
+                      ? <Zap className="h-4 w-4 text-success" />
+                      : <ZapOff className="h-4 w-4 text-muted-foreground" />}
                 </IconButton>
                 <IconButton tooltip="Edit" onClick={() => openEdit(site)}>
                   <Edit className="h-4 w-4" />
