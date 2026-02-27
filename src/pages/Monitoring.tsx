@@ -8,8 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Activity, Bell, Loader2, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { Activity, Bell, Loader2, CheckCircle, XCircle, Plus, Pencil, Trash2 } from 'lucide-react';
 
 export default function MonitoringPage() {
   const { toast } = useToast();
@@ -26,6 +30,9 @@ export default function MonitoringPage() {
   const [selectedAppInstanceId, setSelectedAppInstanceId] = useState('');
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [checkInterval, setCheckInterval] = useState(5);
+  const [editingInstance, setEditingInstance] = useState<MonitoredInstance | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MonitoredInstance | null>(null);
+  const [actionInstanceId, setActionInstanceId] = useState<string | null>(null);
 
   const fetchData = () => {
     setLoading(true);
@@ -51,17 +58,19 @@ export default function MonitoringPage() {
     } catch { toast({ title: 'Error', variant: 'destructive' }); }
   };
 
-  const openAddDialog = async () => {
-    setSelectedAppInstanceId('');
-    setMonitoringEnabled(true);
-    setCheckInterval(5);
+  const openDialog = async (instance?: MonitoredInstance) => {
+    setEditingInstance(instance || null);
+    setSelectedAppInstanceId(instance?.appInstanceId || '');
+    setMonitoringEnabled(instance?.monitoringEnabled ?? true);
+    setCheckInterval(instance?.checkIntervalMinutes ?? 5);
     setDialogOpen(true);
     setLoadingApps(true);
     try {
       const apps = await AppInstancesRepository.findAll();
-      // Filter out already-monitored instances
       const monitoredIds = new Set(instances.map(i => i.appInstanceId));
-      setAppInstances(apps.filter(a => !monitoredIds.has(a.id)));
+      setAppInstances(
+        apps.filter(a => a.id === instance?.appInstanceId || !monitoredIds.has(a.id)),
+      );
     } catch {
       toast({ title: 'Failed to load app instances', variant: 'destructive' });
     } finally {
@@ -69,25 +78,71 @@ export default function MonitoringPage() {
     }
   };
 
-  const handleAdd = async () => {
+  const openAddDialog = () => {
+    void openDialog();
+  };
+
+  const openEditDialog = (instance: MonitoredInstance) => {
+    void openDialog(instance);
+  };
+
+  const handleSave = async () => {
     if (!selectedAppInstanceId) {
       toast({ title: 'Select an instance', variant: 'destructive' });
       return;
     }
     setSaving(true);
     try {
-      await MonitoringRepository.createInstance({
-        appInstanceId: selectedAppInstanceId,
-        monitoringEnabled,
-        checkIntervalMinutes: checkInterval,
-      });
-      toast({ title: 'Instance added to monitoring' });
+      if (editingInstance) {
+        await MonitoringRepository.updateInstance(editingInstance.id, {
+          appInstanceId: selectedAppInstanceId,
+          monitoringEnabled,
+          checkIntervalMinutes: checkInterval,
+        });
+        toast({ title: 'Monitoring instance updated' });
+      } else {
+        await MonitoringRepository.createInstance({
+          appInstanceId: selectedAppInstanceId,
+          monitoringEnabled,
+          checkIntervalMinutes: checkInterval,
+        });
+        toast({ title: 'Instance added to monitoring' });
+      }
       setDialogOpen(false);
+      setEditingInstance(null);
       fetchData();
     } catch {
-      toast({ title: 'Failed to add instance', variant: 'destructive' });
+      toast({ title: editingInstance ? 'Failed to update instance' : 'Failed to add instance', variant: 'destructive' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleMonitoring = async (instance: MonitoredInstance, enabled: boolean) => {
+    setActionInstanceId(instance.id);
+    try {
+      await MonitoringRepository.updateInstance(instance.id, { monitoringEnabled: enabled });
+      setInstances(prev => prev.map(i => (i.id === instance.id ? { ...i, monitoringEnabled: enabled } : i)));
+      toast({ title: `Monitoring ${enabled ? 'enabled' : 'paused'}` });
+    } catch {
+      toast({ title: 'Failed to update monitoring status', variant: 'destructive' });
+    } finally {
+      setActionInstanceId(null);
+    }
+  };
+
+  const handleDeleteInstance = async () => {
+    if (!deleteTarget) return;
+    setActionInstanceId(deleteTarget.id);
+    try {
+      await MonitoringRepository.deleteInstance(deleteTarget.id);
+      setInstances(prev => prev.filter(i => i.id !== deleteTarget.id));
+      toast({ title: 'Monitoring instance removed' });
+    } catch {
+      toast({ title: 'Failed to remove instance', variant: 'destructive' });
+    } finally {
+      setActionInstanceId(null);
+      setDeleteTarget(null);
     }
   };
 
@@ -130,9 +185,39 @@ export default function MonitoringPage() {
                   <div key={inst.id} className="flex items-center justify-between p-3 rounded-md bg-background border border-border">
                     <div>
                       <p className="text-sm font-medium">{inst.appInstance?.name || inst.appInstanceId}</p>
-                      <p className="text-xs text-muted-foreground">Every {inst.checkIntervalMinutes}min • {inst.monitoringEnabled ? 'Active' : 'Paused'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Every {inst.checkIntervalMinutes}min • {inst.monitoringEnabled ? 'Active' : 'Paused'}
+                        {inst.status ? ` • ${inst.status}` : ''}
+                      </p>
                     </div>
-                    <div className={`h-2.5 w-2.5 rounded-full ${inst.monitoringEnabled ? 'bg-success animate-pulse-glow' : 'bg-muted-foreground'}`} />
+                    <div className="flex items-center gap-1.5">
+                      <Switch
+                        checked={inst.monitoringEnabled}
+                        onCheckedChange={(checked) => { void handleToggleMonitoring(inst, checked); }}
+                        disabled={actionInstanceId === inst.id}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(inst)}
+                        disabled={actionInstanceId === inst.id}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteTarget(inst)}
+                        disabled={actionInstanceId === inst.id}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                      {actionInstanceId === inst.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      ) : (
+                        <div className={`h-2.5 w-2.5 rounded-full ${inst.monitoringEnabled ? 'bg-success animate-pulse-glow' : 'bg-muted-foreground'}`} />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -167,11 +252,21 @@ export default function MonitoringPage() {
       )}
 
       {/* Add Instance Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setEditingInstance(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Instance to Monitoring</DialogTitle>
-            <DialogDescription>Select an app instance and configure its monitoring settings</DialogDescription>
+            <DialogTitle>{editingInstance ? 'Edit Monitoring Instance' : 'Add Instance to Monitoring'}</DialogTitle>
+            <DialogDescription>
+              Select an app instance and configure its monitoring settings
+            </DialogDescription>
           </DialogHeader>
           {loadingApps ? (
             <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
@@ -220,13 +315,35 @@ export default function MonitoringPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={saving || !selectedAppInstanceId}>
+            <Button onClick={handleSave} disabled={saving || !selectedAppInstanceId}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Add to Monitoring
+              {editingInstance ? 'Save Changes' : 'Add to Monitoring'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove monitored instance?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will stop health monitoring for <strong>{deleteTarget?.appInstance?.name || deleteTarget?.appInstanceId}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!actionInstanceId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { void handleDeleteInstance(); }}
+              disabled={!!actionInstanceId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {actionInstanceId ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

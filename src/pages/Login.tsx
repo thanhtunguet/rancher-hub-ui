@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useToast } from '@/hooks/use-toast';
 import { Server, Lock, User, Eye, EyeOff, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { getDeviceFingerprint, getDeviceName } from '@/lib/device-fingerprint';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -15,9 +17,26 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [trustDevice, setTrustDevice] = useState(false);
+  const [deviceFingerprint, setDeviceFingerprint] = useState('');
+  const [deviceName, setDeviceName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [step, setStep] = useState<'credentials' | 'otp'>('credentials');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const initDeviceContext = async () => {
+      try {
+        const fingerprint = await getDeviceFingerprint();
+        setDeviceFingerprint(fingerprint);
+      } catch {
+        setDeviceFingerprint('');
+      }
+      setDeviceName(getDeviceName());
+    };
+
+    void initDeviceContext();
+  }, []);
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +45,8 @@ export default function LoginPage() {
       const result = await login({
         username,
         password,
-        deviceName: navigator.userAgent,
+        deviceFingerprint: deviceFingerprint || undefined,
+        deviceName: deviceName || navigator.userAgent,
         userAgent: navigator.userAgent,
       });
       if (result.requires2FA) {
@@ -52,7 +72,9 @@ export default function LoginPage() {
         username,
         password,
         twoFactorToken,
-        deviceName: navigator.userAgent,
+        trustDevice,
+        deviceFingerprint: deviceFingerprint || undefined,
+        deviceName: deviceName || navigator.userAgent,
         userAgent: navigator.userAgent,
       });
       if (!result.requires2FA) {
@@ -159,7 +181,7 @@ export default function LoginPage() {
             <div className="surface-elevated rounded-lg p-8">
               <button
                 type="button"
-                onClick={() => { setStep('credentials'); setTwoFactorToken(''); }}
+                onClick={() => { setStep('credentials'); setTwoFactorToken(''); setTrustDevice(false); }}
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -198,6 +220,11 @@ export default function LoginPage() {
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
+
+                <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                  <Checkbox checked={trustDevice} onCheckedChange={(checked) => setTrustDevice(checked === true)} />
+                  Trust this device for 30 days
+                </label>
 
                 <Button type="submit" className="w-full" disabled={loading || twoFactorToken.length !== 6}>
                   {loading ? (
