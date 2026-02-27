@@ -212,6 +212,9 @@ export interface Service {
   imageRepo?: string;
   imageTag?: string;
   fullImage?: string;
+  status?: string;
+  replicas?: number;
+  availableReplicas?: number;
   appInstanceId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -220,6 +223,9 @@ export interface Service {
 export interface ServiceWithImageSize extends Service {
   imageSize?: number;
   imageSizeFormatted?: string;
+  compressedImageSize?: number;
+  compressedImageSizeFormatted?: string;
+  imageSource?: string | null;
 }
 
 export interface ImageTag {
@@ -386,7 +392,7 @@ export interface CreateMonitoringConfigDto {
   taggedUsers?: string[];
 }
 
-export interface UpdateMonitoringConfigDto extends Partial<CreateMonitoringConfigDto> {}
+export type UpdateMonitoringConfigDto = Partial<CreateMonitoringConfigDto>;
 
 export interface TestTelegramConnectionDto {
   telegramBotToken: string;

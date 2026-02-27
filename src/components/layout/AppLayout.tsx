@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth-context';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,7 @@ const navGroups: (NavItem | NavGroup)[] = [
     label: 'State Management',
     items: [
       { label: 'Services', icon: Layers, path: '/services' },
+      { label: 'Storage View', icon: Container, path: '/storage' },
       { label: 'ConfigMaps', icon: Settings, path: '/configmaps' },
       { label: 'Secrets', icon: Lock, path: '/secrets' },
       { label: 'Sync History', icon: History, path: '/sync-history' },

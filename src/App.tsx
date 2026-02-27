@@ -15,6 +15,7 @@ import HarborBrowser from "./pages/HarborBrowser";
 import GenericClusters from "./pages/GenericClusters";
 import AppInstances from "./pages/AppInstances";
 import Services from "./pages/Services";
+import Storage from "./pages/Storage";
 
 import ConfigMaps from "./pages/ConfigMaps";
 import Secrets from "./pages/Secrets";
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="clusters" element={<GenericClusters />} />
               <Route path="app-instances" element={<AppInstances />} />
               <Route path="services" element={<Services />} />
+              <Route path="storage" element={<Storage />} />
               
               <Route path="configmaps" element={<ConfigMaps />} />
               <Route path="secrets" element={<Secrets />} />
