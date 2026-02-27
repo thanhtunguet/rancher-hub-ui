@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, CheckCircle, AlertTriangle, XCircle, ArrowRight, Minus, Plus, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
 interface DetailData {
@@ -24,6 +23,7 @@ interface CompareDetailDialogProps {
   sourceLabel: string;
   targetLabel: string;
   maskedKeys?: string[];
+  maskValues?: boolean;
   // Single item mode (backward compatible)
   title?: string;
   status?: string;
@@ -95,11 +95,12 @@ const diffStyles: Record<DiffType, { row: string; srcCell: string; tgtCell: stri
   },
 };
 
-function DetailSection({ item, sourceLabel, targetLabel, maskedKeys = [] }: {
+function DetailSection({ item, sourceLabel, targetLabel, maskedKeys = [], maskValues = false }: {
   item: CompareDetailItem;
   sourceLabel: string;
   targetLabel: string;
   maskedKeys?: string[];
+  maskValues?: boolean;
 }) {
   const cfg = statusConfig[item.status] || statusConfig.missing;
   const allKeys = item.detail ? getAllKeys(item.detail.source, item.detail.target) : [];
@@ -168,7 +169,7 @@ function DetailSection({ item, sourceLabel, targetLabel, maskedKeys = [] }: {
             </thead>
             <tbody>
               {sortedKeys.map(key => {
-                const isMasked = maskedKeys.includes(key);
+                const isMasked = maskValues || maskedKeys.includes(key);
                 const srcVal = item.detail!.source?.[key];
                 const tgtVal = item.detail!.target?.[key];
                 const diffType = getDiffType(srcVal, tgtVal);
@@ -199,7 +200,7 @@ function DetailSection({ item, sourceLabel, targetLabel, maskedKeys = [] }: {
 }
 
 export function CompareDetailDialog({
-  open, onOpenChange, sourceLabel, targetLabel, maskedKeys = [],
+  open, onOpenChange, sourceLabel, targetLabel, maskedKeys = [], maskValues = false,
   title, status, loading, detail,
   items,
 }: CompareDetailDialogProps) {
@@ -244,6 +245,7 @@ export function CompareDetailDialog({
                   sourceLabel={sourceLabel}
                   targetLabel={targetLabel}
                   maskedKeys={maskedKeys}
+                  maskValues={maskValues}
                 />
               </div>
             ))}

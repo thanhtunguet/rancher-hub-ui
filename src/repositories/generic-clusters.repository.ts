@@ -20,8 +20,8 @@ export const GenericClustersRepository = {
   testConnection: (id: string) =>
     getApiClient().post(`/api/generic-clusters/${id}/test`).then(r => r.data),
 
-  setActive: (id: string) =>
-    getApiClient().post(`/api/generic-clusters/${id}/set-active`).then(r => r.data),
+  setActive: (id: string, active: boolean) =>
+    getApiClient().post(`/api/generic-clusters/${id}/set-active`, { active }).then(r => r.data),
 
   getNamespaces: (id: string) =>
     getApiClient().get(`/api/generic-clusters/${id}/namespaces`).then(r => r.data),

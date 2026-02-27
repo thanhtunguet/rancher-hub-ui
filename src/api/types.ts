@@ -317,7 +317,57 @@ export interface ConfigMapCompareResult {
   comparisons: ConfigMapComparison[];
 }
 
+export interface ConfigMapKeyComparison {
+  key: string;
+  sourceValue: string | null;
+  targetValue: string | null;
+  isDifferent: boolean;
+  missingInSource: boolean;
+  missingInTarget: boolean;
+  identical: boolean;
+}
+
+export interface ConfigMapDetailResult {
+  configMapName: string;
+  sourceAppInstanceId: string;
+  targetAppInstanceId: string;
+  sourceConfigMap: ConfigMap | null;
+  targetConfigMap: ConfigMap | null;
+  keyComparisons: ConfigMapKeyComparison[];
+  summary: {
+    totalKeys: number;
+    identical: number;
+    different: number;
+    missingInSource: number;
+    missingInTarget: number;
+  };
+}
+
+export interface SyncConfigMapKeyDto {
+  sourceAppInstanceId: string;
+  targetAppInstanceId: string;
+  configMapName: string;
+  key: string;
+  value: string;
+}
+
+export interface SyncConfigMapKeysDto {
+  sourceAppInstanceId: string;
+  targetAppInstanceId: string;
+  configMapName: string;
+  keys: Record<string, string>;
+}
+
 // ==================== Secrets ====================
+export interface Secret {
+  name: string;
+  type?: string;
+  namespace?: string;
+  data?: Record<string, string>;
+  dataKeys?: string[];
+  keys?: string[];
+}
+
 export interface SecretComparison {
   secretName: string;
   source: Record<string, unknown> | null;
@@ -331,6 +381,47 @@ export interface SecretCompareResult {
   targetAppInstanceId: string;
   summary: ComparisonSummary;
   comparisons: SecretComparison[];
+}
+
+export interface SecretKeyComparison {
+  key: string;
+  sourceExists: boolean;
+  targetExists: boolean;
+  isDifferent: boolean;
+  missingInSource: boolean;
+  missingInTarget: boolean;
+  identical: boolean;
+}
+
+export interface SecretDetailResult {
+  secretName: string;
+  sourceAppInstanceId: string;
+  targetAppInstanceId: string;
+  source: Secret | null;
+  target: Secret | null;
+  keyComparisons: SecretKeyComparison[];
+  summary: {
+    totalKeys: number;
+    identical: number;
+    different: number;
+    missingInSource: number;
+    missingInTarget: number;
+  };
+}
+
+export interface SyncSecretKeyDto {
+  sourceAppInstanceId: string;
+  targetAppInstanceId: string;
+  secretName: string;
+  key: string;
+  value: string;
+}
+
+export interface SyncSecretKeysDto {
+  sourceAppInstanceId: string;
+  targetAppInstanceId: string;
+  secretName: string;
+  keys: Record<string, string>;
 }
 
 // ==================== Users ====================

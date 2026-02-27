@@ -1,5 +1,11 @@
 import { getApiClient } from '../api/client';
-import type { ConfigMap, ConfigMapCompareResult } from '../api/types';
+import type {
+  ConfigMap,
+  ConfigMapCompareResult,
+  ConfigMapDetailResult,
+  SyncConfigMapKeyDto,
+  SyncConfigMapKeysDto,
+} from '../api/types';
 
 export const ConfigMapsRepository = {
   getByAppInstance: (appInstanceId: string) =>
@@ -9,11 +15,11 @@ export const ConfigMapsRepository = {
     getApiClient().get<ConfigMapCompareResult>('/api/configmaps/compare/by-instance', { params: { source, target } }).then(r => r.data),
 
   getDetails: (configMapName: string, source: string, target: string) =>
-    getApiClient().get(`/api/configmaps/${configMapName}/details`, { params: { source, target } }).then(r => r.data),
+    getApiClient().get<ConfigMapDetailResult>(`/api/configmaps/${configMapName}/details`, { params: { source, target } }).then(r => r.data),
 
-  syncKey: (data: Record<string, unknown>) =>
+  syncKey: (data: SyncConfigMapKeyDto) =>
     getApiClient().post('/api/configmaps/sync-key', data).then(r => r.data),
 
-  syncKeys: (data: Record<string, unknown>) =>
+  syncKeys: (data: SyncConfigMapKeysDto) =>
     getApiClient().post('/api/configmaps/sync-keys', data).then(r => r.data),
 };

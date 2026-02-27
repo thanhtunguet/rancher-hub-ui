@@ -19,6 +19,7 @@ export default function GenericClustersPage() {
   const [editing, setEditing] = useState<GenericCluster | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [form, setForm] = useState<CreateGenericClusterSiteDto>({ name: '', kubeconfig: '' });
   const [saving, setSaving] = useState(false);
 
@@ -56,8 +57,15 @@ export default function GenericClustersPage() {
   };
 
   const handleToggle = async (cluster: GenericCluster) => {
-    try { await GenericClustersRepository.setActive(cluster.id); fetchData(); }
+    const nextActive = !cluster.active;
+    setTogglingId(cluster.id);
+    try {
+      await GenericClustersRepository.setActive(cluster.id, nextActive);
+      toast({ title: nextActive ? 'Cluster activated' : 'Cluster deactivated' });
+      fetchData();
+    }
     catch { toast({ title: 'Error', variant: 'destructive' }); }
+    finally { setTogglingId(null); }
   };
 
   return (
@@ -86,8 +94,10 @@ export default function GenericClustersPage() {
                 <IconButton tooltip="Test connection" onClick={() => handleTest(c.id)} disabled={testingId === c.id}>
                   {testingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />}
                 </IconButton>
-                <IconButton tooltip={c.active ? 'Active' : 'Set active'} onClick={() => handleToggle(c)}>
-                  <Zap className={`h-4 w-4 ${c.active ? 'text-success' : 'text-muted-foreground'}`} />
+                <IconButton tooltip={c.active ? 'Deactivate' : 'Set active'} onClick={() => handleToggle(c)} disabled={togglingId === c.id}>
+                  {togglingId === c.id
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Zap className={`h-4 w-4 ${c.active ? 'text-success' : 'text-muted-foreground'}`} />}
                 </IconButton>
                 <IconButton tooltip="Edit" onClick={() => { setEditing(c); setForm({ name: c.name, kubeconfig: '' }); setDialogOpen(true); }}>
                   <Edit className="h-4 w-4" />
