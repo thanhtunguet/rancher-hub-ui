@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { NavLink } from '@/components/NavLink';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/IconButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -155,6 +156,7 @@ export default function AppLayout() {
           </div>
 
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2 text-sm">
