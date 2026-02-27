@@ -241,6 +241,19 @@ export default function ServicesPage() {
     return <XCircle className="h-4 w-4 text-destructive" />;
   };
 
+  const getComparisonStringField = (service: Record<string, unknown> | null, field: string): string | null => {
+    if (!service) return null;
+    const value = service[field];
+    return typeof value === 'string' && value.trim().length > 0 ? value : null;
+  };
+
+  const formatImageTag = (fullImageTag: string | null): string => {
+    if (!fullImageTag) return '—';
+    const lastSlashIndex = fullImageTag.lastIndexOf('/');
+    if (lastSlashIndex === -1) return fullImageTag;
+    return fullImageTag.substring(lastSlashIndex + 1);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -329,13 +342,15 @@ export default function ServicesPage() {
             </div>
           )}
 
-          <div className="surface-elevated rounded-lg overflow-hidden">
-            <table className="w-full">
+          <div className="surface-elevated rounded-lg overflow-x-auto">
+            <table className="w-full min-w-[1100px]">
               <thead><tr className="border-b border-border text-xs text-muted-foreground uppercase tracking-wider">
                 <th className="p-3 w-10"></th>
                 <th className="text-left p-3 font-medium">Service</th>
                 <th className="text-left p-3 font-medium">Type</th>
                 <th className="text-left p-3 font-medium">Status</th>
+                <th className="text-left p-3 font-medium">Source Image Tag</th>
+                <th className="text-left p-3 font-medium">Target Image Tag</th>
                 <th className="text-left p-3 font-medium">Differences</th>
               </tr></thead>
               <tbody>
@@ -352,6 +367,26 @@ export default function ServicesPage() {
                     <td className="p-3 text-sm font-medium font-mono">{c.serviceName}</td>
                     <td className="p-3 text-xs text-muted-foreground">{c.workloadType || '—'}</td>
                     <td className="p-3"><div className="flex items-center gap-2">{statusIcon(c.status)}<span className="text-xs capitalize">{c.status}</span></div></td>
+                    <td className="p-3 align-top">
+                      {!c.source ? (
+                        <span className="text-xs text-muted-foreground italic">Not found</span>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <div className="text-xs font-mono">{formatImageTag(getComparisonStringField(c.source, 'imageTag'))}</div>
+                          <div className="text-[11px] text-muted-foreground">Status: {getComparisonStringField(c.source, 'status') || '—'}</div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-3 align-top">
+                      {!c.target ? (
+                        <span className="text-xs text-muted-foreground italic">Not found</span>
+                      ) : (
+                        <div className="space-y-0.5">
+                          <div className="text-xs font-mono">{formatImageTag(getComparisonStringField(c.target, 'imageTag'))}</div>
+                          <div className="text-[11px] text-muted-foreground">Status: {getComparisonStringField(c.target, 'status') || '—'}</div>
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3 text-xs text-muted-foreground font-mono">
                       {c.status === 'different' && c.differences ? (
                         <div className="max-w-xs truncate">{Object.entries(c.differences).map(([k, v]) => <div key={k}>{k}: {JSON.stringify(v)}</div>)}</div>
