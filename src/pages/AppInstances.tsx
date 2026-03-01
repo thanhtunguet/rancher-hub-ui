@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AppInstancesRepository } from '@/repositories/app-instances.repository';
 import { EnvironmentsRepository } from '@/repositories/environments.repository';
 import { SitesRepository } from '@/repositories/sites.repository';
@@ -28,6 +28,11 @@ export default function AppInstancesPage() {
   const [form, setForm] = useState<CreateAppInstanceDto>({
     name: '', cluster: '', namespace: '', clusterType: 'rancher', environmentId: '',
   });
+  const activeSites = useMemo(() => sites.filter((site) => site.active), [sites]);
+  const activeClusters = useMemo(
+    () => clusters.filter((cluster) => cluster.active),
+    [clusters],
+  );
 
   const fetchData = async () => {
     try {
@@ -50,9 +55,26 @@ export default function AppInstancesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const dto = { ...form };
-      if (dto.clusterType === 'rancher') { delete (dto as any).genericClusterSiteId; }
-      else { delete (dto as any).rancherSiteId; }
+      const dto: CreateAppInstanceDto = form.clusterType === 'rancher'
+        ? { ...form, genericClusterSiteId: undefined }
+        : { ...form, rancherSiteId: undefined };
+
+      if (
+        dto.clusterType === 'rancher' &&
+        !activeSites.some((site) => site.id === dto.rancherSiteId)
+      ) {
+        toast({ title: 'Please select an active Rancher site', variant: 'destructive' });
+        return;
+      }
+
+      if (
+        dto.clusterType === 'generic' &&
+        !activeClusters.some((cluster) => cluster.id === dto.genericClusterSiteId)
+      ) {
+        toast({ title: 'Please select an active generic cluster', variant: 'destructive' });
+        return;
+      }
+
       if (editing) { await AppInstancesRepository.update(editing.id, dto); }
       else { await AppInstancesRepository.create(dto); }
       toast({ title: editing ? 'Updated' : 'Created' });
@@ -143,7 +165,7 @@ export default function AppInstancesPage() {
                 <Label>Rancher Site</Label>
                 <Select value={form.rancherSiteId || ''} onValueChange={(v) => setForm({ ...form, rancherSiteId: v })}>
                   <SelectTrigger><SelectValue placeholder="Select site" /></SelectTrigger>
-                  <SelectContent>{sites.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{activeSites.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}
@@ -152,7 +174,7 @@ export default function AppInstancesPage() {
                 <Label>Generic Cluster</Label>
                 <Select value={form.genericClusterSiteId || ''} onValueChange={(v) => setForm({ ...form, genericClusterSiteId: v })}>
                   <SelectTrigger><SelectValue placeholder="Select cluster" /></SelectTrigger>
-                  <SelectContent>{clusters.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{activeClusters.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             )}

@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
     },
     proxy: {
       "/api": {
-        target: "https://rancher-hub.dc01.supa.vn",
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
     },
