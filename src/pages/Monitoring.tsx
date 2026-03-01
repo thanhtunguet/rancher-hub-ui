@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MonitoringRepository } from '@/repositories/monitoring.repository';
 import { AppInstancesRepository } from '@/repositories/app-instances.repository';
 import type { MonitoringConfig, MonitoredInstance, MonitoringAlert, AppInstance } from '@/api/types';
@@ -17,6 +18,7 @@ import { Activity, Bell, Loader2, CheckCircle, XCircle, Plus, Pencil, Trash2 } f
 
 export default function MonitoringPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [config, setConfig] = useState<MonitoringConfig | null>(null);
   const [instances, setInstances] = useState<MonitoredInstance[]>([]);
   const [alerts, setAlerts] = useState<MonitoringAlert[]>([]);
@@ -181,15 +183,30 @@ export default function MonitoringPage() {
               <p className="text-sm text-muted-foreground">No instances being monitored</p>
             ) : (
               <div className="space-y-2">
-                {instances.map(inst => (
+                {instances.map(inst => {
+                  const statusDotClass = !inst.monitoringEnabled
+                    ? 'bg-muted-foreground'
+                    : inst.lastStatus === 'healthy'
+                    ? 'bg-success animate-pulse-glow'
+                    : inst.lastStatus === 'warning'
+                    ? 'bg-yellow-500 animate-pulse-glow'
+                    : inst.lastStatus === 'critical' || inst.lastStatus === 'error'
+                    ? 'bg-destructive'
+                    : 'bg-muted-foreground';
+
+                  return (
                   <div key={inst.id} className="flex items-center justify-between p-3 rounded-md bg-background border border-border">
-                    <div>
-                      <p className="text-sm font-medium">{inst.appInstance?.name || inst.appInstanceId}</p>
+                    <button
+                      type="button"
+                      className="flex-1 text-left min-w-0 cursor-pointer"
+                      onClick={() => navigate(`/monitoring/instances/${inst.id}`)}
+                    >
+                      <p className="text-sm font-medium hover:underline">{inst.appInstance?.name || inst.appInstanceId}</p>
                       <p className="text-xs text-muted-foreground">
                         Every {inst.checkIntervalMinutes}min • {inst.monitoringEnabled ? 'Active' : 'Paused'}
-                        {inst.status ? ` • ${inst.status}` : ''}
+                        {inst.lastStatus ? ` • ${inst.lastStatus}` : ''}
                       </p>
-                    </div>
+                    </button>
                     <div className="flex items-center gap-1.5">
                       <Switch
                         checked={inst.monitoringEnabled}
@@ -215,11 +232,12 @@ export default function MonitoringPage() {
                       {actionInstanceId === inst.id ? (
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                       ) : (
-                        <div className={`h-2.5 w-2.5 rounded-full ${inst.monitoringEnabled ? 'bg-success animate-pulse-glow' : 'bg-muted-foreground'}`} />
+                        <div className={`h-2.5 w-2.5 rounded-full ${statusDotClass}`} />
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

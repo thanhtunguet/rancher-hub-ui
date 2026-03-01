@@ -513,8 +513,9 @@ export interface MonitoredInstance {
   monitoringEnabled: boolean;
   checkIntervalMinutes: number;
   appInstance?: AppInstance;
-  lastCheckAt?: string;
-  status?: string;
+  lastCheckTime?: string;
+  lastStatus?: string;
+  consecutiveFailures?: number;
 }
 
 export interface CreateMonitoredInstanceDto {
@@ -536,6 +537,21 @@ export interface MonitoringAlert {
   resolved?: boolean;
   createdAt?: string;
   resolvedAt?: string;
+}
+
+export interface MonitoringHistoryEntry {
+  id: string;
+  monitoredInstanceId: string;
+  checkTime: string;
+  status: string;
+  responseTimeMs: number;
+  servicesCount: number;
+  healthyServices: number;
+  failedServices: number;
+  pausedServices: number;
+  details?: string;
+  error?: string;
+  createdAt?: string;
 }
 
 // ==================== Message Templates ====================

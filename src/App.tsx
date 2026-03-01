@@ -26,6 +26,7 @@ import Profile from "./pages/Profile";
 import TrustedDevices from "./pages/TrustedDevices";
 import Settings from "./pages/Settings";
 import Monitoring from "./pages/Monitoring";
+import MonitoringInstanceDetail from "./pages/MonitoringInstanceDetail";
 import MonitoringConfig from "./pages/MonitoringConfig";
 import MessageTemplates from "./pages/MessageTemplates";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="secrets" element={<Secrets />} />
                 <Route path="sync-history" element={<SyncHistory />} />
                 <Route path="monitoring" element={<Monitoring />} />
+                <Route path="monitoring/instances/:id" element={<MonitoringInstanceDetail />} />
                 <Route path="monitoring/config" element={<MonitoringConfig />} />
                 <Route path="monitoring/templates" element={<MessageTemplates />} />
                 <Route path="users" element={<Users />} />
