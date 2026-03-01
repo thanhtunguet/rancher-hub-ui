@@ -143,8 +143,12 @@ export default function ServicesPage() {
         serviceIds,
         targetAppInstanceIds: [target.id],
       };
-      await ServicesRepository.syncServices(dto);
-      toast({ title: 'Sync complete', description: `${serviceIds.length} services synced` });
+      const result = await ServicesRepository.syncServices(dto);
+      if (result?.status === 'partial') {
+        toast({ title: 'Sync completed with errors', description: 'Some services could not be synced. Check sync history for details.' });
+      } else {
+        toast({ title: 'Sync complete', description: `${serviceIds.length} service(s) synced successfully` });
+      }
       setSyncDialogOpen(false);
       setSelectedServiceNames([]);
       fetchComparison();
