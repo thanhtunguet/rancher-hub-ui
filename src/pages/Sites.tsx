@@ -82,6 +82,23 @@ export default function SitesPage() {
   useEffect(() => { fetchSites(); }, []);
 
   const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast({ title: 'Validation error', description: 'Please enter a site name', variant: 'destructive' });
+      return;
+    }
+    if (!form.url.trim()) {
+      toast({ title: 'Validation error', description: 'Please enter the Rancher URL', variant: 'destructive' });
+      return;
+    }
+    const urlError = getUrlValidationError(form.url);
+    if (urlError) {
+      toast({ title: 'Validation error', description: urlError, variant: 'destructive' });
+      return;
+    }
+    if (!editingSite && !form.token.trim()) {
+      toast({ title: 'Validation error', description: 'Please enter the API token', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
       if (editingSite) {
