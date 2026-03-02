@@ -21,13 +21,13 @@ export const HarborSitesRepository = {
     getApiClient().post('/api/harbor-sites/test-connection', dto).then(r => r.data),
 
   testSiteConnection: (id: string) =>
-    getApiClient().post(`/api/harbor-sites/${id}/test`).then(r => r.data),
+    getApiClient().post(`/api/harbor-sites/${id}/test`, {}).then(r => r.data),
 
   activate: (id: string) =>
-    getApiClient().post(`/api/harbor-sites/${id}/activate`).then(r => r.data),
+    getApiClient().post(`/api/harbor-sites/${id}/activate`, {}).then(r => r.data),
 
   deactivate: (id: string) =>
-    getApiClient().post(`/api/harbor-sites/${id}/deactivate`).then(r => r.data),
+    getApiClient().post(`/api/harbor-sites/${id}/deactivate`, {}).then(r => r.data),
 
   getActiveSite: () =>
     getApiClient().get<HarborSite>('/api/harbor-sites/active').then(r => r.data),

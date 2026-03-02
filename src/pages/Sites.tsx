@@ -15,6 +15,50 @@ import {
 import { Plus, Server, Wifi, WifiOff, Trash2, Edit, Zap, ZapOff, Loader2 } from 'lucide-react';
 import { IconButton } from '@/components/IconButton';
 
+/**
+ * Hostnames that the backend rejects — mirrored here so the user sees an
+ * inline error immediately instead of receiving a cryptic 400 from the API.
+ * Must stay in sync with apps/backend/src/common/validators/safe-url.validator.ts
+ */
+const BLOCKED_HOSTNAMES = new Set([
+  "169.254.169.254",
+  "169.254.170.2",
+  "metadata.google.internal",
+  "metadata.internal",
+  "localhost",
+  "localhost.localdomain",
+  "0.0.0.0",
+  "::1",
+  "[::1]",
+]);
+
+function getUrlValidationError(value: string): string | null {
+  if (!value) return null; // required check is handled separately
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return "Please enter a valid URL";
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return "URL must use http:// or https://";
+  }
+  const hostname = url.hostname.toLowerCase();
+  if (BLOCKED_HOSTNAMES.has(hostname)) {
+    return `"${url.hostname}" is not a permitted hostname`;
+  }
+  // Block 127.0.0.0/8 (IPv4 loopback)
+  const parts = hostname.split(".");
+  if (
+    parts.length === 4 &&
+    parts.every((p) => /^\d+$/.test(p)) &&
+    Number(parts[0]) === 127
+  ) {
+    return "Loopback addresses (127.x.x.x) are not permitted";
+  }
+  return null;
+}
+
 export default function SitesPage() {
   const { toast } = useToast();
   const [sites, setSites] = useState<Site[]>([]);

@@ -43,10 +43,10 @@ export const MonitoringRepository = {
     getApiClient().put(`/api/monitoring/alerts/${id}/resolve`).then(r => r.data),
 
   triggerDailyCheck: () =>
-    getApiClient().post('/api/monitoring/trigger/daily-check').then(r => r.data),
+    getApiClient().post('/api/monitoring/trigger/daily-check', {}).then(r => r.data),
 
   triggerHourlyCheck: () =>
-    getApiClient().post('/api/monitoring/trigger/hourly-check').then(r => r.data),
+    getApiClient().post('/api/monitoring/trigger/hourly-check', {}).then(r => r.data),
 
   test: () =>
     getApiClient().get('/api/monitoring/test').then(r => r.data),

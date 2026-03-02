@@ -21,7 +21,7 @@ export const MessageTemplatesRepository = {
     getApiClient().delete(`/api/message-templates/${id}`).then(r => r.data),
 
   restoreDefault: (id: string) =>
-    getApiClient().post(`/api/message-templates/${id}/restore`).then(r => r.data),
+    getApiClient().post(`/api/message-templates/${id}/restore`, {}).then(r => r.data),
 
   preview: (dto: PreviewTemplateDto) =>
     getApiClient().post('/api/message-templates/preview', dto).then(r => r.data),

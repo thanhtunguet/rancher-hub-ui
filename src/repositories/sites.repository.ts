@@ -18,13 +18,13 @@ export const SitesRepository = {
     getApiClient().delete(`/api/sites/${id}`).then(r => r.data),
 
   testConnection: (id: string) =>
-    getApiClient().post<TestConnectionResponse>(`/api/sites/${id}/test`).then(r => r.data),
+    getApiClient().post<TestConnectionResponse>(`/api/sites/${id}/test`, {}).then(r => r.data),
 
   activate: (id: string) =>
-    getApiClient().post(`/api/sites/${id}/activate`).then(r => r.data),
+    getApiClient().post(`/api/sites/${id}/activate`, {}).then(r => r.data),
 
   deactivate: (id: string) =>
-    getApiClient().post(`/api/sites/${id}/deactivate`).then(r => r.data),
+    getApiClient().post(`/api/sites/${id}/deactivate`, {}).then(r => r.data),
 
   getActiveSite: () =>
     getApiClient().get<Site>('/api/sites/active').then(r => r.data),

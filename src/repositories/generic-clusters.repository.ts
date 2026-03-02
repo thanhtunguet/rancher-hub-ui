@@ -18,7 +18,7 @@ export const GenericClustersRepository = {
     getApiClient().delete(`/api/generic-clusters/${id}`).then(r => r.data),
 
   testConnection: (id: string) =>
-    getApiClient().post(`/api/generic-clusters/${id}/test`).then(r => r.data),
+    getApiClient().post(`/api/generic-clusters/${id}/test`, {}).then(r => r.data),
 
   setActive: (id: string, active: boolean) =>
     getApiClient().post(`/api/generic-clusters/${id}/set-active`, { active }).then(r => r.data),
