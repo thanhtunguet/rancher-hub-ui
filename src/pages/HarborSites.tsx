@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HarborSitesRepository } from '@/repositories/harbor-sites.repository';
-import type { HarborSite, CreateHarborSiteDto } from '@/api/types';
+import type { HarborSite, CreateHarborSiteDto, UpdateHarborSiteDto } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,8 +35,16 @@ export default function HarborSitesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (editing) { await HarborSitesRepository.update(editing.id, form); }
-      else { await HarborSitesRepository.create(form); }
+      if (editing) {
+        const updateDto: UpdateHarborSiteDto = { name: form.name, url: form.url, username: form.username, active: form.active };
+        // Only send password if user typed a new one; avoid clearing existing password
+        if (form.password.trim()) {
+          updateDto.password = form.password;
+        }
+        await HarborSitesRepository.update(editing.id, updateDto);
+      } else {
+        await HarborSitesRepository.create(form);
+      }
       toast({ title: editing ? 'Updated' : 'Created' });
       setDialogOpen(false); setEditing(null); fetchData();
     } catch { toast({ title: 'Error', variant: 'destructive' }); }
@@ -125,7 +133,7 @@ export default function HarborSitesPage() {
             <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Harbor Registry" /></div>
             <div className="space-y-2"><Label>URL</Label><Input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://harbor.example.com" className="font-mono text-sm" /></div>
             <div className="space-y-2"><Label>Username</Label><Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editing ? '(unchanged)' : ''} /></div>
+            <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={editing?.hasPassword ? '••• configured (leave blank to keep)' : ''} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

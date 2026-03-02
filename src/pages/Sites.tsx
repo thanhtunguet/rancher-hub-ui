@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SitesRepository } from '@/repositories/sites.repository';
-import type { Site, CreateSiteDto } from '@/api/types';
+import type { Site, CreateSiteDto, UpdateSiteDto } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +41,12 @@ export default function SitesPage() {
     setSaving(true);
     try {
       if (editingSite) {
-        await SitesRepository.update(editingSite.id, form);
+        const updateDto: UpdateSiteDto = { name: form.name, url: form.url };
+        // Only send token if user typed a new one; avoid clearing existing token
+        if (form.token.trim()) {
+          updateDto.token = form.token;
+        }
+        await SitesRepository.update(editingSite.id, updateDto);
         toast({ title: 'Site updated' });
       } else {
         await SitesRepository.create(form);
@@ -176,7 +181,7 @@ export default function SitesPage() {
             </div>
             <div className="space-y-2">
               <Label>API Token</Label>
-              <Input value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} type="password" placeholder="token-abc123:xyz789" className="font-mono text-sm" />
+              <Input value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} type="password" placeholder={editingSite?.hasToken ? '••• configured (leave blank to keep)' : 'token-abc123:xyz789'} className="font-mono text-sm" />
             </div>
           </div>
           <DialogFooter>

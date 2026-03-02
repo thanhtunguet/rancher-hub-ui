@@ -79,6 +79,7 @@ export interface Site {
   id: string;
   name: string;
   url: string;
+  hasToken?: boolean;
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -104,6 +105,7 @@ export interface UpdateGenericClusterSiteDto {
 export interface GenericCluster {
   id: string;
   name: string;
+  hasKubeconfig?: boolean;
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -137,6 +139,7 @@ export interface HarborSite {
   name: string;
   url: string;
   username: string;
+  hasPassword?: boolean;
   active?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -486,8 +489,8 @@ export interface CreateMonitoringConfigDto {
 export type UpdateMonitoringConfigDto = Partial<CreateMonitoringConfigDto>;
 
 export interface TestTelegramConnectionDto {
-  telegramBotToken: string;
-  telegramChatId: string;
+  telegramBotToken?: string;
+  telegramChatId?: string;
   proxyHost?: string;
   proxyPort?: number;
   proxyUsername?: string;
@@ -497,10 +500,12 @@ export interface TestTelegramConnectionDto {
 
 export interface MonitoringConfig {
   id?: string;
-  telegramBotToken?: string;
+  hasTelegramBotToken?: boolean;
   telegramChatId?: string;
   proxyHost?: string;
   proxyPort?: number;
+  proxyUsername?: string;
+  hasProxyPassword?: boolean;
   monitoringEnabled: boolean;
   alertThreshold: number;
   notificationSchedule: string;

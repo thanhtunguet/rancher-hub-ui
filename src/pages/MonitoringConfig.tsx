@@ -23,6 +23,7 @@ export default function MonitoringConfigPage() {
   // Telegram
   const [telegramBotToken, setTelegramBotToken] = useState('');
   const [telegramChatId, setTelegramChatId] = useState('');
+  const [hasTelegramBotToken, setHasTelegramBotToken] = useState(false);
 
   // Tagged users
   const [taggedUsers, setTaggedUsers] = useState<string[]>([]);
@@ -33,6 +34,7 @@ export default function MonitoringConfigPage() {
   const [proxyPort, setProxyPort] = useState<number | ''>('');
   const [proxyUsername, setProxyUsername] = useState('');
   const [proxyPassword, setProxyPassword] = useState('');
+  const [hasProxyPassword, setHasProxyPassword] = useState(false);
 
   const [hasExisting, setHasExisting] = useState(false);
 
@@ -43,11 +45,14 @@ export default function MonitoringConfigPage() {
         setMonitoringEnabled(cfg.monitoringEnabled);
         setAlertThreshold(cfg.alertThreshold);
         setNotificationSchedule(cfg.notificationSchedule);
-        setTelegramBotToken(cfg.telegramBotToken || '');
+        // Sensitive fields are not returned by the API; use presence flags instead
+        setHasTelegramBotToken(cfg.hasTelegramBotToken || false);
         setTelegramChatId(cfg.telegramChatId || '');
         setTaggedUsers(cfg.taggedUsers || []);
         setProxyHost(cfg.proxyHost || '');
         setProxyPort(cfg.proxyPort || '');
+        setProxyUsername(cfg.proxyUsername || '');
+        setHasProxyPassword(cfg.hasProxyPassword || false);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -66,23 +71,29 @@ export default function MonitoringConfigPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const dto = {
+      const dto: Record<string, unknown> = {
         monitoringEnabled,
         alertThreshold,
         notificationSchedule: notificationSchedule as 'immediate' | 'hourly' | 'daily',
-        telegramBotToken: telegramBotToken || undefined,
         telegramChatId: telegramChatId || undefined,
         taggedUsers,
         proxyHost: proxyHost || undefined,
         proxyPort: proxyPort ? Number(proxyPort) : undefined,
         proxyUsername: proxyUsername || undefined,
-        proxyPassword: proxyPassword || undefined,
       };
 
+      // Only send sensitive fields if the user provided a new value
+      if (telegramBotToken.trim()) {
+        dto.telegramBotToken = telegramBotToken;
+      }
+      if (proxyPassword.trim()) {
+        dto.proxyPassword = proxyPassword;
+      }
+
       if (hasExisting) {
-        await MonitoringRepository.updateConfig(dto);
+        await MonitoringRepository.updateConfig(dto as Parameters<typeof MonitoringRepository.updateConfig>[0]);
       } else {
-        await MonitoringRepository.createOrUpdateConfig(dto);
+        await MonitoringRepository.createOrUpdateConfig(dto as Parameters<typeof MonitoringRepository.createOrUpdateConfig>[0]);
         setHasExisting(true);
       }
       toast({ title: 'Configuration saved' });
@@ -94,14 +105,13 @@ export default function MonitoringConfigPage() {
   };
 
   const handleTestTelegram = async () => {
-    if (!telegramBotToken || !telegramChatId) {
+    if (!telegramChatId || (!telegramBotToken && !hasTelegramBotToken)) {
       toast({ title: 'Bot Token and Chat ID are required', variant: 'destructive' });
       return;
     }
     setTesting(true);
     try {
       const dto: TestTelegramConnectionDto = {
-        telegramBotToken,
         telegramChatId,
         proxyHost: proxyHost || undefined,
         proxyPort: proxyPort ? Number(proxyPort) : undefined,
@@ -109,6 +119,10 @@ export default function MonitoringConfigPage() {
         proxyPassword: proxyPassword || undefined,
         taggedUsers,
       };
+      // Only include bot token if the user typed a new one; otherwise server uses stored one
+      if (telegramBotToken.trim()) {
+        dto.telegramBotToken = telegramBotToken;
+      }
       await MonitoringRepository.testTelegram(dto);
       toast({ title: 'Telegram test sent successfully' });
     } catch {
@@ -189,7 +203,7 @@ export default function MonitoringConfigPage() {
             <Input
               id="botToken"
               type="password"
-              placeholder="123456:ABC-DEF..."
+              placeholder={hasTelegramBotToken ? '••• configured (leave blank to keep)' : '123456:ABC-DEF...'}
               value={telegramBotToken}
               onChange={e => setTelegramBotToken(e.target.value)}
             />
@@ -263,7 +277,7 @@ export default function MonitoringConfigPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="proxyPass">Password</Label>
-            <Input id="proxyPass" type="password" placeholder="optional" value={proxyPassword} onChange={e => setProxyPassword(e.target.value)} />
+            <Input id="proxyPass" type="password" placeholder={hasProxyPassword ? '••• configured (leave blank to keep)' : 'optional'} value={proxyPassword} onChange={e => setProxyPassword(e.target.value)} />
           </div>
         </div>
       </section>

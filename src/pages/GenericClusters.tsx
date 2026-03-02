@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GenericClustersRepository } from '@/repositories/generic-clusters.repository';
-import type { GenericCluster, CreateGenericClusterSiteDto } from '@/api/types';
+import type { GenericCluster, CreateGenericClusterSiteDto, UpdateGenericClusterSiteDto } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,8 +34,16 @@ export default function GenericClustersPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (editing) { await GenericClustersRepository.update(editing.id, form); }
-      else { await GenericClustersRepository.create(form); }
+      if (editing) {
+        const updateDto: UpdateGenericClusterSiteDto = { name: form.name };
+        // Only send kubeconfig if user provided a new value; avoid clearing existing config
+        if (form.kubeconfig.trim()) {
+          updateDto.kubeconfig = form.kubeconfig;
+        }
+        await GenericClustersRepository.update(editing.id, updateDto);
+      } else {
+        await GenericClustersRepository.create(form);
+      }
       toast({ title: editing ? 'Updated' : 'Created' });
       setDialogOpen(false); setEditing(null); fetchData();
     } catch { toast({ title: 'Error', variant: 'destructive' }); }
@@ -116,7 +124,7 @@ export default function GenericClustersPage() {
           <DialogHeader><DialogTitle>{editing ? 'Edit Cluster' : 'Add Cluster'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Production EKS" /></div>
-            <div className="space-y-2"><Label>Kubeconfig</Label><Textarea value={form.kubeconfig} onChange={(e) => setForm({ ...form, kubeconfig: e.target.value })} placeholder="Paste kubeconfig YAML..." className="font-mono text-xs min-h-[200px]" /></div>
+            <div className="space-y-2"><Label>Kubeconfig</Label><Textarea value={form.kubeconfig} onChange={(e) => setForm({ ...form, kubeconfig: e.target.value })} placeholder={editing?.hasKubeconfig ? '••• configured (leave blank to keep current)' : 'Paste kubeconfig YAML...'} className="font-mono text-xs min-h-[200px]" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
