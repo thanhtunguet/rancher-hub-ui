@@ -12,7 +12,7 @@ export const AuthRepository = {
     getApiClient().get<UserProfile>('/api/auth/profile').then(r => r.data),
 
   setup2FA: () =>
-    getApiClient().post<TwoFASetupResponse>('/api/auth/setup-2fa').then(r => r.data),
+    getApiClient().post<TwoFASetupResponse>('/api/auth/setup-2fa', {}).then(r => r.data),
 
   verify2FA: (dto: Verify2FADto) =>
     getApiClient().post('/api/auth/verify-2fa', dto).then(r => r.data),
